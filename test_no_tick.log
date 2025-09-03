@@ -1,0 +1,13 @@
+2025-08-26 17:47:56,041 [INFO] Starting single CARLA server...
+2025-08-26 17:47:56,041 [INFO] Cleaning up existing servers...
+2025-08-26 17:48:01,091 [INFO] Starting server with command: python microservice_manager.py --num-services 1 --startup-delay 0
+2025-08-26 17:48:01,096 [INFO] Waiting for server to be ready...
+2025-08-26 17:48:03,113 [INFO] Server is ready!
+2025-08-26 17:48:08,128 [INFO] Connected to server on port 8080
+2025-08-26 17:48:08,129 [INFO] ============================================================
+2025-08-26 17:48:08,129 [INFO] VISUAL SNAPSHOT/RESTORE TEST
+2025-08-26 17:48:08,129 [INFO] ============================================================
+2025-08-26 17:48:08,129 [INFO] 
+=== Phase 0: Reset Environment ===
+2025-08-26 17:48:08,129 [INFO] Resetting environment with route_id=0
+2025-08-26 17:48:08,129 [INFO] Note: First reset may take 60-120 seconds to load CARLA world and scenarios...

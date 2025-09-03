@@ -1,0 +1,112 @@
+# Bench2Drive Microservices Configuration
+# Multi-instance CARLA setup on same GPU
+
+# GPU Configuration
+gpu:
+  # Strategy: "same" (all on same GPU) or "distributed" (round-robin across GPUs)
+  strategy: "distributed"
+  
+  # Default GPU ID when using "same" strategy
+  default_gpu: 0
+  
+  # Available GPUs for "distributed" strategy
+  # This will assign: Service 0->GPU0, Service 1->GPU1, Service 2->GPU0, Service 3->GPU1
+  available_gpus: [0, 1]
+
+# Port Configuration
+ports:
+  # Base ports for services
+  api_base: 8080        # REST API ports (8080, 8081, 8082...)
+  carla_base: 2000      # CARLA RPC ports (2000, 2004, 2008...)
+  streaming_base: 3000  # Streaming ports (3000, 3010, 3020...)
+  
+  # Port spacing to avoid conflicts
+  api_offset: 1         # Increment for each service
+  carla_offset: 4       # CARLA uses 3 consecutive ports, so skip 4
+  streaming_offset: 10  # Large offset for streaming to avoid conflicts
+
+# Service Configuration  
+services:
+  # Number of services to spawn
+  num_services: 4
+  
+  # Startup delay between services (seconds)
+  # Set to 0 for parallel start (works on same GPU!)
+  startup_delay: 0
+  
+  # Health check settings
+  health_check_interval: 30  # seconds
+  health_check_timeout: 5    # seconds
+  
+  # Auto-restart on failure
+  auto_restart: true
+  max_restart_attempts: 3
+
+# CARLA Configuration
+carla:
+  # Path to CARLA installation
+  carla_path: "/mnt3/Documents/AD_Framework/carla0915"
+  
+  # Rendering mode
+  render_offscreen: true
+  
+  # Quality level: Epic, High, Medium, Low
+  quality_level: "Epic"
+  
+  # Sound enabled
+  nosound: true
+  
+  # Timeout settings (seconds)
+  client_timeout: 60
+  world_load_timeout: 120
+  
+  # Traffic manager settings
+  tm_hybrid_mode: true
+  tm_default_port_offset: 1000  # TM port = CARLA port + offset
+
+# Bench2Drive Configuration
+bench2drive:
+  # Routes and scenarios
+  routes_file: "leaderboard/data/routes_validation.xml"
+  scenarios_file: "leaderboard/data/scenarios.json"
+  
+  # Checkpoint for agent
+  checkpoint_path: null
+  
+  # Track selection (use specific track ID or null for all)
+  track: null
+  
+  # Resume from specific route
+  resume: null
+  
+  # Repetitions per route
+  repetitions: 1
+
+# Logging Configuration
+logging:
+  # Log level: DEBUG, INFO, WARNING, ERROR
+  level: "INFO"
+  
+  # Log directory structure
+  log_dir: "logs"
+  
+  # Keep logs for N days
+  retention_days: 7
+  
+  # Log rotation
+  max_size_mb: 100
+  backup_count: 5
+
+# Performance Tuning
+performance:
+  # Memory limits
+  max_memory_gb: 8  # Per CARLA instance
+  
+  # CPU affinity (optional)
+  cpu_affinity: null
+  
+  # Process priority
+  nice_level: 0
+  
+  # Garbage collection
+  gc_interval: 100  # steps
