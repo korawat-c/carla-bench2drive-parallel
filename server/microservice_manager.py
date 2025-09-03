@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-FIXED Microservice Manager for Bench2Drive
+ROBUST Microservice Manager for Bench2Drive
 
+Enhanced version with automatic port cleanup, self-recovery, and health monitoring.
 This correctly uses carla_server.py which includes the building blocks.
 Each microservice is just a carla_server.py instance that handles:
 1. Starting CARLA through building blocks (with leaderboard)
 2. Providing REST API for Gymnasium interface
 
-The building blocks handle all CARLA startup, so we DON'T start CARLA directly!
+Features:
+- Automatic port cleanup before starting
+- Health monitoring with auto-restart
+- Graceful shutdown with cleanup
+- Port conflict resolution
 """
 
 import os
@@ -19,6 +24,8 @@ import psutil
 import logging
 import yaml
 import json
+import socket
+import atexit
 import threading
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -40,6 +47,96 @@ logging.basicConfig(
 logger = logging.getLogger('MicroserviceManager')
 
 
+class PortManager:
+    """Manages port allocation and cleanup"""
+    
+    @staticmethod
+    def is_port_in_use(port: int) -> bool:
+        """Check if a port is in use"""
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(('', port))
+                return False
+            except:
+                return True
+    
+    @staticmethod
+    def kill_process_on_port(port: int) -> bool:
+        """Kill any process using the specified port"""
+        try:
+            # Find process using the port
+            result = subprocess.run(
+                f"lsof -ti:{port}",
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            
+            if result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    try:
+                        logger.info(f"Killing process {pid} using port {port}")
+                        os.kill(int(pid), signal.SIGKILL)
+                        time.sleep(0.5)
+                    except:
+                        pass
+                return True
+            return False
+        except Exception as e:
+            logger.debug(f"Error killing process on port {port}: {e}")
+            return False
+    
+    @staticmethod
+    def cleanup_ports(ports: List[int], force: bool = True) -> None:
+        """Clean up a list of ports"""
+        for port in ports:
+            if PortManager.is_port_in_use(port):
+                logger.info(f"Port {port} is in use, cleaning up...")
+                if force:
+                    PortManager.kill_process_on_port(port)
+                    time.sleep(0.5)
+                    if not PortManager.is_port_in_use(port):
+                        logger.info(f"Port {port} successfully freed")
+                    else:
+                        logger.warning(f"Port {port} still in use after cleanup")
+
+
+class ProcessManager:
+    """Manages process cleanup"""
+    
+    @staticmethod
+    def kill_carla_processes():
+        """Kill all CARLA-related processes"""
+        patterns = [
+            "CarlaUE4",
+            "carla_server.py",
+            "microservice_manager",
+            "CarlaUE4-Linux-Shipping"
+        ]
+        
+        for pattern in patterns:
+            try:
+                subprocess.run(
+                    f"pkill -f {pattern}",
+                    shell=True,
+                    capture_output=True
+                )
+            except:
+                pass
+    
+    @staticmethod
+    def cleanup_zombie_processes():
+        """Clean up zombie processes"""
+        for proc in psutil.process_iter(['pid', 'name', 'status']):
+            try:
+                if proc.info['status'] == psutil.STATUS_ZOMBIE:
+                    logger.info(f"Cleaning zombie process: {proc.info['pid']} ({proc.info['name']})")
+                    proc.kill()
+            except:
+                pass
+
+
 @dataclass
 class ServiceConfig:
     """Configuration for a single Bench2Drive microservice"""
@@ -47,6 +144,9 @@ class ServiceConfig:
     api_port: int
     carla_port: int  # CARLA port that carla_server.py will use
     gpu_id: int
+    auto_restart: bool = True
+    max_restarts: int = 3
+    health_check_interval: int = 30
 
 
 class Bench2DriveService:
@@ -65,14 +165,40 @@ class Bench2DriveService:
         self.process = None
         self.is_running = False
         self.start_time = None
+        self.restart_count = 0
+        self.health_thread = None
+        self.should_monitor = True
         self.logger = logging.getLogger(f'Service-{config.service_id}')
         
         # Path to carla_server.py
         self.server_script = Path(__file__).parent / "carla_server.py"
         
+        # Required ports for this service
+        self.required_ports = [
+            config.api_port,
+            config.carla_port,
+            config.carla_port + 1,  # CARLA streaming port
+            config.carla_port + 2,  # CARLA secondary port
+        ]
+        
+    def cleanup_ports(self):
+        """Clean up all ports used by this service"""
+        self.logger.info(f"Cleaning up ports for service {self.config.service_id}")
+        PortManager.cleanup_ports(self.required_ports)
+    
     def start(self) -> bool:
-        """Start the carla_server.py process"""
+        """Start the carla_server.py process with port cleanup"""
         self.logger.info(f"Starting service {self.config.service_id}")
+        
+        # Clean up ports first
+        self.cleanup_ports()
+        time.sleep(1)
+        
+        # Verify ports are free
+        for port in self.required_ports:
+            if PortManager.is_port_in_use(port):
+                self.logger.error(f"Port {port} still in use after cleanup")
+                return False
         
         # Build command to start carla_server.py
         cmd = [
@@ -115,6 +241,11 @@ class Bench2DriveService:
                 self.is_running = True
                 self.start_time = time.time()
                 self.logger.info(f"✓ Service {self.config.service_id} ready")
+                
+                # Start health monitoring if enabled
+                if self.config.auto_restart:
+                    self.start_health_monitor()
+                
                 return True
             else:
                 self.logger.error("Server did not become ready")
@@ -153,9 +284,14 @@ class Bench2DriveService:
         return False
     
     def stop(self):
-        """Stop the service"""
+        """Stop the service and clean up"""
         self.logger.info(f"Stopping service {self.config.service_id}")
+        self.should_monitor = False
         self.is_running = False
+        
+        # Stop health monitoring thread
+        if self.health_thread:
+            self.health_thread.join(timeout=5)
         
         if self.process and self.process.poll() is None:
             try:
@@ -168,8 +304,70 @@ class Bench2DriveService:
                     os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
                 except:
                     pass
+        
+        # Clean up ports after stopping
+        self.cleanup_ports()
+        self.logger.info("Service stopped and ports cleaned")
+    
+    def check_health(self) -> bool:
+        """Check if the service is healthy"""
+        if not self.is_running or not self.process:
+            return False
+        
+        # Check process is still running
+        if self.process.poll() is not None:
+            self.logger.warning(f"Process died with exit code {self.process.returncode}")
+            return False
+        
+        # Check API health endpoint
+        try:
+            response = requests.get(
+                f"http://localhost:{self.config.api_port}/health",
+                timeout=5
+            )
+            return response.status_code == 200
+        except:
+            return False
+    
+    def restart(self) -> bool:
+        """Restart the service"""
+        self.logger.info(f"Restarting service {self.config.service_id}")
+        self.stop()
+        time.sleep(2)
+        
+        if self.restart_count >= self.config.max_restarts:
+            self.logger.error(f"Maximum restart attempts ({self.config.max_restarts}) reached")
+            return False
+        
+        self.restart_count += 1
+        success = self.start()
+        
+        if success:
+            self.logger.info(f"Service restarted successfully (attempt {self.restart_count})")
+        else:
+            self.logger.error(f"Service restart failed (attempt {self.restart_count})")
+        
+        return success
+    
+    def start_health_monitor(self):
+        """Start health monitoring thread"""
+        self.should_monitor = True
+        self.health_thread = threading.Thread(target=self._health_monitor_loop)
+        self.health_thread.daemon = True
+        self.health_thread.start()
+    
+    def _health_monitor_loop(self):
+        """Health monitoring loop"""
+        while self.should_monitor:
+            time.sleep(self.config.health_check_interval)
             
-            self.logger.info("Service stopped")
+            if not self.should_monitor:
+                break
+            
+            if not self.check_health():
+                self.logger.warning(f"Service {self.config.service_id} is unhealthy")
+                if self.config.auto_restart:
+                    self.restart()
     
     def health_check(self) -> Dict:
         """Check health of the service"""
