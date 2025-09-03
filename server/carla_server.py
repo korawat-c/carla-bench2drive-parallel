@@ -28,6 +28,7 @@ import json
 import uuid
 import logging
 import pickle
+import yaml
 from datetime import datetime
 from typing import Dict, Any, Optional, List, Tuple
 from pathlib import Path
@@ -94,21 +95,39 @@ def setup_logging(api_port, log_to_file=True, log_to_console=True):
 # Initialize logger
 logger = setup_logging(8080, log_to_file=False, log_to_console=True)
 
+# Load configuration from config.yaml
+def load_config():
+    """Load configuration from config.yaml"""
+    config_path = Path(__file__).parent.parent / "configs" / "config.yaml"
+    if config_path.exists():
+        with open(config_path, 'r') as f:
+            return yaml.safe_load(f)
+    else:
+        logger.warning(f"Config file not found at {config_path}, using defaults")
+        return {}
+
 # Setup Bench2Drive environment and paths
 def setup_bench2drive_environment():
     """Setup environment variables and paths for Bench2Drive"""
     
-    # Set required environment variables
-    os.environ['IS_BENCH2DRIVE'] = 'true'
-    os.environ['REPETITION'] = '1'
-    os.environ['TMP_VISU'] = '0'  # Enable camera sensors
+    # Load configuration
+    config = load_config()
+    
+    # Get paths from config or use defaults
+    paths_config = config.get('paths', {})
+    bench2drive_root = paths_config.get('bench2drive_root', '/mnt3/Documents/AD_Framework/Bench2Drive')
+    leaderboard_path = paths_config.get('leaderboard_path', f'{bench2drive_root}/leaderboard')
+    leaderboard_module_path = paths_config.get('leaderboard_module_path', f'{bench2drive_root}/leaderboard/leaderboard')
+    scenario_runner_path = paths_config.get('scenario_runner_path', f'{bench2drive_root}/scenario_runner')
+    carla_root = paths_config.get('carla_root', '/mnt3/Documents/AD_Framework/carla0915')
+    
+    # Set environment variables from config
+    env_config = config.get('environment', {})
+    os.environ['IS_BENCH2DRIVE'] = env_config.get('IS_BENCH2DRIVE', 'true')
+    os.environ['REPETITION'] = env_config.get('REPETITION', '1')
+    os.environ['TMP_VISU'] = env_config.get('TMP_VISU', '0')  # Enable camera sensors
     
     # Add Bench2Drive paths to sys.path
-    bench2drive_root = '/mnt3/Documents/AD_Framework/Bench2Drive'
-    leaderboard_path = f'{bench2drive_root}/leaderboard'
-    leaderboard_module_path = f'{bench2drive_root}/leaderboard/leaderboard'
-    scenario_runner_path = f'{bench2drive_root}/scenario_runner'
-    
     paths_to_add = [
         leaderboard_path,
         leaderboard_module_path,
@@ -126,7 +145,7 @@ def setup_bench2drive_environment():
         
     # Set CARLA_ROOT if not set
     if 'CARLA_ROOT' not in os.environ:
-        os.environ['CARLA_ROOT'] = '/mnt3/Documents/AD_Framework/carla0915'
+        os.environ['CARLA_ROOT'] = carla_root
         
     logger.info("Bench2Drive environment setup complete")
 

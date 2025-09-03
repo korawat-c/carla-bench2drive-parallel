@@ -12,6 +12,15 @@ paths:
   tests_dir: "tests"
   logs_dir: "logs"
   snapshots_dir: "snapshots"
+  
+  # Bench2Drive paths
+  bench2drive_root: "/mnt3/Documents/AD_Framework/Bench2Drive"
+  leaderboard_path: "/mnt3/Documents/AD_Framework/Bench2Drive/leaderboard"
+  leaderboard_module_path: "/mnt3/Documents/AD_Framework/Bench2Drive/leaderboard/leaderboard"
+  scenario_runner_path: "/mnt3/Documents/AD_Framework/Bench2Drive/scenario_runner"
+  
+  # CARLA paths
+  carla_root: "/mnt3/Documents/AD_Framework/carla0915"
 
 # GPU Configuration
 gpu:
@@ -75,6 +84,12 @@ carla:
   # Traffic manager settings
   tm_hybrid_mode: true
   tm_default_port_offset: 1000  # TM port = CARLA port + offset
+
+# Environment Variables
+environment:
+  IS_BENCH2DRIVE: "true"
+  REPETITION: "1"
+  TMP_VISU: "0"  # Enable camera sensors
 
 # Bench2Drive Configuration
 bench2drive:
