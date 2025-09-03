@@ -1,9 +1,0 @@
-Step: 40
-Timestamp: 2025-09-03 14:56:37.932846
-Ego Speed: 9.28 m/s (33.4 km/h)
-
-Sensor Data:
-  speed: frame=000072
-  Center: frame=000072, shape=(600, 800, 4)
-  Left: frame=000072, shape=(600, 800, 4)
-  Right: frame=000072, shape=(600, 800, 4)

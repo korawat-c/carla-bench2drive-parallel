@@ -12,6 +12,7 @@ __pycache__/
 *.pyd
 .Python
 *.so
+*.log
 
 ## Virtual environments
 venv/
