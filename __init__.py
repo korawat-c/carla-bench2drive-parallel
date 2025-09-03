@@ -17,21 +17,20 @@ Key features:
 """
 
 from typing import List, Tuple, Any
-from .carla_env import CarlaEnv
-from .vectorized_env import VectorizedCarlaEnv
-# from .carla_microservices import ServiceManager, CarlaService, ServiceConfig
-from .microservice_manager import MicroserviceManager, Bench2DriveService
+from client.carla_env import CarlaEnv
+from client.vectorized_env import VectorizedCarlaEnv
+from server.microservice_manager import MicroserviceManager, Bench2DriveService
 
 # Try to import old components for compatibility
 try:
-    from .server_manager import CarlaServerManager, CarlaServer, spawn_carla_servers
+    from tests.server_manager import CarlaServerManager, CarlaServer, spawn_carla_servers
 except ImportError:
     CarlaServerManager = None
     CarlaServer = None
     spawn_carla_servers = None
 
 try:
-    from .api_agent import APIAgent, get_entry_point, create_api_agent, validate_action
+    from client.api_agent import APIAgent, get_entry_point, create_api_agent, validate_action
 except ImportError:
     APIAgent = None
     get_entry_point = None

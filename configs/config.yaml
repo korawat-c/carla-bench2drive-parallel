@@ -1,6 +1,18 @@
 # Bench2Drive Microservices Configuration
 # Multi-instance CARLA setup on same GPU
 
+# Project paths
+paths:
+  # Base working directory for the project
+  working_dir: "/mnt3/Documents/AD_Framework/bench2drive-gymnasium/bench2drive_microservices"
+  
+  # Relative paths from working_dir
+  server_dir: "server"
+  client_dir: "client"
+  tests_dir: "tests"
+  logs_dir: "logs"
+  snapshots_dir: "snapshots"
+
 # GPU Configuration
 gpu:
   # Strategy: "same" (all on same GPU) or "distributed" (round-robin across GPUs)
