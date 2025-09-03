@@ -1,0 +1,117 @@
+## ignore Orion/simlingo folder
+Orion/
+simlingo/
+carla0915/
+Bench2Drive/
+
+## Python bytecode and cache files
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+*.so
+
+## Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+## IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+## ignore .env file
+.env
+.env.local
+
+## Logs and test outputs
+*.log
+logs/
+snapshot_test_images/
+test_images/
+
+## Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+## Archive files
+*.tar.gz
+*.tar
+*.zip
+*.rar
+*.7z
+
+## Temporary files
+*.tmp
+*.bak
+.cache/
+tmp/
+
+## Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+## Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+
+## Jupyter Notebook
+# .ipynb_checkpoints
+
+## Data files
+*.json
+*.csv
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+
+## Video files
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+## Model weights
+*.pth
+*.pt
+*.ckpt
+*.weights
+*.pb
+*.onnx
+
+## VeRL training outputs
+checkpoints/
+runs/
+tensorboard/
+wandb/
+
+## Bench2Drive specific
+leaderboard/
+scenario_runner/
+carla_data/
+routes_*.xml
+scenarios_*.json
+stat_manager_results.json
+
+## Microservices
+bench2drive-gymnasium/bench2drive_microservices/service_*/
+resource_allocations.json
+
+## System files
+Thumbs.db
+desktop.ini
