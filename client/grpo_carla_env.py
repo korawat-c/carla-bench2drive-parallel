@@ -180,7 +180,86 @@ class GRPOCarlaEnv:
         # Async operation tracking
         self.branching_setup_future = None
         self.branching_setup_progress = 0.0
-        
+
+    def initialize_all_services(self, route_id: int = 0):
+        """
+        Pre-initialize all CARLA services to eliminate initialization time during branching.
+
+        This method resets all services upfront so they're ready immediately when
+        branching is enabled. This saves significant time during the critical
+        branching phase.
+
+        Args:
+            route_id: Route ID to use for all services
+
+        Returns:
+            StatusInfo indicating initialization status
+        """
+        logger.info(f"Pre-initializing {self.max_branches} services for fast branching...")
+
+        try:
+            # Initialize all environments in parallel using ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=self.max_branches) as executor:
+                futures = []
+
+                for i in range(self.max_branches):
+                    # Create environment if not exists
+                    self._create_env(i)
+
+                    # Submit reset task
+                    future = executor.submit(
+                        self._reset_service,
+                        i,
+                        route_id,
+                        f"Pre-init service {i}"
+                    )
+                    futures.append((i, future))
+
+                # Wait for all services to initialize
+                success_count = 0
+                for i, future in futures:
+                    try:
+                        success = future.result(timeout=120)  # 2 minute timeout per service
+                        if success:
+                            success_count += 1
+                            logger.info(f"✓ Service {i} initialized successfully")
+                        else:
+                            logger.error(f"✗ Service {i} failed to initialize")
+                    except Exception as e:
+                        logger.error(f"✗ Service {i} initialization error: {e}")
+
+                logger.info(f"Service pre-initialization complete: {success_count}/{self.max_branches} ready")
+
+                return StatusInfo(
+                    status=EnvStatus.READY if success_count == self.max_branches else EnvStatus.ERROR,
+                    message=f"Pre-initialized {success_count}/{self.max_branches} services",
+                    ready=success_count == self.max_branches,
+                    progress=success_count / self.max_branches
+                )
+
+        except Exception as e:
+            logger.error(f"Service pre-initialization failed: {e}")
+            return StatusInfo(
+                status=EnvStatus.ERROR,
+                message=f"Pre-initialization failed: {e}",
+                ready=False
+            )
+
+    def _reset_service(self, service_idx: int, route_id: int, description: str = "") -> bool:
+        """Reset a single service and return success status."""
+        try:
+            if self.envs[service_idx] is None:
+                self._create_env(service_idx)
+
+            # Reset the service using the public reset method
+            obs, info = self.envs[service_idx].reset(options={"route_id": route_id})
+            logger.debug(f"Service {service_idx} reset successfully: {description}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Service {service_idx} reset failed: {e}")
+            return False
+
     @property
     def is_branching(self) -> bool:
         """Check if currently in branching mode."""
@@ -549,12 +628,18 @@ class GRPOCarlaEnv:
                         self._create_env(i)
                         self.branching_setup_progress = (i + 1) / num_branches * 0.5
                 
-                # Load snapshot into all branches (parallel)
+                # Reset and load snapshot into all branches (parallel)
                 futures = []
                 for i in range(num_branches):
                     if i != self.primary_env_idx:  # Primary already has the state
+                        # First reset the environment to initialize simulation
+                        logger.info(f"Resetting branch {i} environment...")
+                        obs, info = self.envs[i].reset(options={"route_id": 0})
+
+                        # Then restore the snapshot
+                        logger.info(f"Restoring snapshot to branch {i}...")
                         future = self.executor.submit(
-                            self.envs[i].restore_snapshot, 
+                            self.envs[i].restore_snapshot,
                             snapshot_id
                         )
                         futures.append((i, future))

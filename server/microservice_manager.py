@@ -78,7 +78,7 @@ class PortManager:
                     try:
                         logger.info(f"Killing process {pid} using port {port}")
                         os.kill(int(pid), signal.SIGKILL)
-                        time.sleep(0.5)
+                        time.sleep(2.0)  # Wait longer for CARLA processes to fully terminate
                     except:
                         pass
                 return True
@@ -95,7 +95,7 @@ class PortManager:
                 logger.info(f"Port {port} is in use, cleaning up...")
                 if force:
                     PortManager.kill_process_on_port(port)
-                    time.sleep(0.5)
+                    time.sleep(2.0)  # Wait longer for CARLA processes to fully terminate
                     if not PortManager.is_port_in_use(port):
                         logger.info(f"Port {port} successfully freed")
                     else:
@@ -146,7 +146,7 @@ class ServiceConfig:
     gpu_id: int
     auto_restart: bool = True
     max_restarts: int = 3
-    health_check_interval: int = 30
+    health_check_interval: int = 300  # 5 minutes for CARLA world loading
 
 
 class Bench2DriveService:
@@ -358,16 +358,22 @@ class Bench2DriveService:
     
     def _health_monitor_loop(self):
         """Health monitoring loop"""
+        current_thread = threading.current_thread()
         while self.should_monitor:
             time.sleep(self.config.health_check_interval)
-            
+
             if not self.should_monitor:
                 break
-            
+
             if not self.check_health():
                 self.logger.warning(f"Service {self.config.service_id} is unhealthy")
                 if self.config.auto_restart:
-                    self.restart()
+                    # Don't call restart directly from the health thread
+                    # Just signal and let another thread handle it
+                    self.logger.info(f"Scheduling restart for service {self.config.service_id}")
+                    restart_thread = threading.Thread(target=self.restart)
+                    restart_thread.daemon = True
+                    restart_thread.start()
     
     def health_check(self) -> Dict:
         """Check health of the service"""
@@ -388,7 +394,7 @@ class Bench2DriveService:
             try:
                 response = requests.get(
                     f"http://localhost:{self.config.api_port}/health",
-                    timeout=2
+                    timeout=10  # Increased timeout for health checks
                 )
                 if response.status_code == 200:
                     health["status"] = "healthy"
@@ -438,7 +444,7 @@ class MicroserviceManager:
             "num_services": 2,
             "gpus": [0],  # Available GPUs
             "auto_restart": True,
-            "health_check_interval": 30
+            "health_check_interval": 300  # 5 minutes for CARLA operations
         }
     
     def spawn_service(self, service_id: Optional[int] = None) -> Bench2DriveService:
@@ -560,28 +566,55 @@ class MicroserviceManager:
                     self.services[sid].start()
     
     def start(self):
-        """Start the manager and spawn initial services"""
+        """Start the manager and spawn initial services in parallel"""
         self.running = True
-        
-        # Spawn initial services
+
+        # Spawn initial services in parallel for faster startup
         num_services = self.config.get("num_services", 2)
         startup_delay = self.config.get("startup_delay", 0)  # Delay between service starts
-        logger.info(f"Starting {num_services} services...")
-        
-        for i in range(num_services):
-            self.spawn_service(i)
-            
-            # Add delay between service starts if configured
-            # This helps when running multiple services on the same GPU
-            if startup_delay > 0 and i < num_services - 1:
-                logger.info(f"Waiting {startup_delay}s before starting next service...")
-                time.sleep(startup_delay)
-        
+        logger.info(f"Starting {num_services} services in parallel...")
+
+        # For true parallel startup, skip delays when startup_delay is 0
+        if startup_delay == 0:
+            # Start all services simultaneously using threads
+            import concurrent.futures
+
+            def start_service_thread(service_id):
+                """Thread function to start a single service"""
+                try:
+                    self.spawn_service(service_id)
+                    return service_id, True
+                except Exception as e:
+                    logger.error(f"Failed to start service {service_id}: {e}")
+                    return service_id, False
+
+            # Use ThreadPoolExecutor to start services in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=num_services) as executor:
+                futures = [executor.submit(start_service_thread, i) for i in range(num_services)]
+
+                # Wait for all services to start
+                for future in concurrent.futures.as_completed(futures):
+                    service_id, success = future.result()
+                    if success:
+                        logger.info(f"✓ Service {service_id} started successfully")
+                    else:
+                        logger.error(f"✗ Service {service_id} failed to start")
+        else:
+            # Sequential startup with delays (fallback for compatibility)
+            for i in range(num_services):
+                self.spawn_service(i)
+
+                # Add delay between service starts if configured
+                # This helps when running multiple services on the same GPU
+                if startup_delay > 0 and i < num_services - 1:
+                    logger.info(f"Waiting {startup_delay}s before starting next service...")
+                    time.sleep(startup_delay)
+
         # Start monitoring
         self.monitor_thread = threading.Thread(target=self._monitor_services, daemon=True)
         self.monitor_thread.start()
-        
-        logger.info(f"Manager started with {num_services} services")
+
+        logger.info(f"Manager started with {len(self.services)} services")
     
     def stop(self):
         """Stop all services"""

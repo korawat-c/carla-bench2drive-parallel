@@ -1,13 +1,98 @@
-2025-09-03 21:52:25 [INFO] carla_server - setup_bench2drive_environment:131 - Bench2Drive environment setup complete
-2025-09-03 21:52:25 [INFO] carla_server - <module>:153 - All CARLA and Bench2Drive imports successful
-Traceback (most recent call last):
-  File "server/carla_server.py", line 162, in <module>
-    from api_agent import APIAgent, get_entry_point
-ModuleNotFoundError: No module named 'api_agent'
+2025-09-29 21:41:43 [INFO] carla_server - setup_bench2drive_environment:150 - Bench2Drive environment setup complete
+2025-09-29 21:41:43 [INFO] carla_server - <module>:172 - All CARLA and Bench2Drive imports successful
+2025-09-29 21:41:43 [INFO] carla_server - __init__:809 - Snapshot directory created/verified at: /mnt3/Documents/AD_Framework/bench2drive-gymnasium/bench2drive_microservices/snapshots
+2025-09-29 21:41:43 [INFO] carla_server - <module>:2205 - Starting Bench2Drive CARLA server service-0 on port 8080...
+server/carla_server.py:1070: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
 
-During handling of the above exception, another exception occurred:
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+server/carla_server.py:1079: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
 
-Traceback (most recent call last):
-  File "server/carla_server.py", line 168, in <module>
-    from api_agent import APIAgent, get_entry_point
-ModuleNotFoundError: No module named 'api_agent'
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("shutdown")
+INFO:     Started server process [116870]
+INFO:     Waiting for application startup.
+2025-09-29 21:41:43 [INFO] carla_server - startup_event:1073 - ============================================================
+2025-09-29 21:41:43 [INFO] carla_server - startup_event:1074 - Bench2Drive CARLA Server [service-0] starting...
+2025-09-29 21:41:43 [INFO] carla_server - startup_event:1075 - API Port: 8080
+2025-09-29 21:41:43 [INFO] carla_server - startup_event:1076 - CARLA Port: 2000
+2025-09-29 21:41:43 [INFO] carla_server - startup_event:1077 - ============================================================
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56416 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35696 - "GET /health HTTP/1.1" 200 OK
+2025-09-29 21:41:56 [INFO] carla_server - reset_environment:1340 - Reset endpoint called with route_id=0
+2025-09-29 21:41:56 [INFO] carla_server - reset_environment:1355 - Setting up new LeaderboardEvaluator
+2025-09-29 21:41:56 [INFO] carla_server - reset_environment:1400 - Creating LeaderboardEvaluator instance
+2025-09-29 21:41:56 [INFO] carla_server - _setup_simulation:238 - Attempting to setup CARLA on port 2000
+2025-09-29 21:41:58 [INFO] carla_server - _setup_simulation:252 - No existing CARLA on port 2000, will start new instance: time-out of 2000ms while waiting for the simulator, make sure the simulator is ready and connected to localhost:2000
+2025-09-29 21:41:58 [INFO] carla_server - _setup_simulation:259 - Port 2000 is free, using it
+2025-09-29 21:41:58 [INFO] resource_manager - allocate_resources:114 - Allocated resources for service 0:
+2025-09-29 21:41:58 [INFO] resource_manager - allocate_resources:115 -   GPU: 0
+2025-09-29 21:41:58 [INFO] resource_manager - allocate_resources:116 -   API Port: 8080
+2025-09-29 21:41:58 [INFO] resource_manager - allocate_resources:117 -   CARLA Port: 2000
+2025-09-29 21:41:58 [INFO] resource_manager - allocate_resources:118 -   Streaming Port: 3000
+2025-09-29 21:41:58 [INFO] resource_manager - allocate_resources:119 -   TM Port: 3000
+2025-09-29 21:41:58 [INFO] carla_server - _setup_simulation:285 - [Resource Manager] Starting CARLA with GPU 0, RPC port 2000, streaming port 3000
+4.26.2-0+++UE4+Release-4.26 522 0
+Disabling core dumps.
+2025-09-29 21:42:03 [INFO] carla_server - _setup_simulation:316 - Loading world...
+2025-09-29 21:42:09 [INFO] carla_server - _setup_simulation:330 - World loaded successfully, attempts=0
+2025-09-29 21:42:09 [INFO] carla_server - _setup_simulation:346 - Traffic manager initialized successfully, attempts=0
+2025-09-29 21:42:09 [INFO] carla_server - reset_environment:1402 - LeaderboardEvaluator created successfully
+2025-09-29 21:42:09 [INFO] carla_server - reset_environment:1408 - World initialized from client
+2025-09-29 21:42:09 [INFO] carla_server - reset_environment:1459 - Calling my_load_scenario...
+2025-09-29 21:42:09 [INFO] carla_server - my_load_scenario:434 - my_load_scenario: Starting function
+2025-09-29 21:42:09 [INFO] carla_server - my_load_scenario:439 - ========= Preparing RouteScenario_1790 (repetition 0) =========
+2025-09-29 21:42:09 [INFO] carla_server - my_load_scenario:451 - Loading the world
+2025-09-29 21:42:09 [INFO] carla_server - my_load_scenario:455 - my_load_scenario: Calling _load_and_wait_for_world for town Town12
+2025-09-29 21:42:09 [INFO] carla_server - _load_and_wait_for_world:404 - Current map: Town10HD_Opt, loading new town: Town12
+2025-09-29 21:42:52 [INFO] carla_server - _load_and_wait_for_world:407 - Town Town12 loaded successfully
+2025-09-29 21:42:55 [INFO] carla_server - my_load_scenario:457 - my_load_scenario: Creating RouteScenario
+2025-09-29 21:43:23 [INFO] carla_server - my_load_scenario:459 - my_load_scenario: Setting scenario in statistics_manager
+2025-09-29 21:43:23 [INFO] carla_server - reset_environment:1466 - my_load_scenario returned: (False, 'RouteScenario_1790_rep0_Town12_HazardAtSideLane_1_8_09_29_21_42_09', 'Started', '')
+2025-09-29 21:43:23 [INFO] carla_server - my_load_agent:501 - Setting up the agent
+2025-09-29 21:43:23 [INFO] carla_server - my_load_agent:518 - APIAgent detected - using dummy watchdog for setup
+[APIAgent] Initialized - waiting for actions from API
+[APIAgent] Global plan set with 120 waypoints
+[APIAgent] Setup complete with config: +RouteScenario_1790_rep0_Town12_HazardAtSideLane_1_8_09_29_21_42_09_api_agent
+[APIAgent] sensors() called - defining sensor suite
+2025-09-29 21:43:23 [INFO] carla_server - my_load_route_scenario:576 - Running the route
+[APIAgent] sensors() called - defining sensor suite
+2025-09-29 21:43:25 [INFO] root - __init__:25 - WDT: Started
+2025-09-29 21:43:25 [INFO] carla_server - my_run_scenario_setup:614 - APIAgent detected - using dummy agent watchdog (controlled via REST API)
+2025-09-29 21:43:25 [INFO] carla_server - reset_environment:1525 - Ticking once to get initial sensor data...
+=== [Agent] -- Wallclock = 2025-09-29 21:43:25.611 -- System time = 0.000 -- Game time = 0.050 -- Ratio = 0.000x
+[APIAgent] Step 0 - run_step called
+[APIAgent] input_data type: <class 'dict'>
+[APIAgent] input_data keys: ['GPS', 'IMU', 'Center', 'Left', 'Right', 'SPEED']
+[APIAgent] Center camera type: <class 'tuple'>
+[APIAgent] Center tuple length: 2
+[APIAgent] Center data shape: (512, 1024, 4)
+[APIAgent] Left camera type: <class 'tuple'>
+[APIAgent] Left tuple length: 2
+[APIAgent] Left data shape: (512, 1024, 4)
+[APIAgent] Right camera type: <class 'tuple'>
+[APIAgent] Right tuple length: 2
+[APIAgent] Right data shape: (512, 1024, 4)
+[APIAgent] SPEED data type: <class 'tuple'>
+[APIAgent] SPEED data: {'speed': 2.8403161580028646e-05}
+[APIAgent] Step 0: Got sensor data for ['GPS', 'IMU', 'Center', 'Left', 'Right', 'SPEED']
+INFO:     127.0.0.1:35712 - "POST /reset HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56086 - "GET /health HTTP/1.1" 200 OK
+2025-09-29 21:43:26 [INFO] carla_server - reset_environment:1340 - Reset endpoint called with route_id=0
+2025-09-29 21:43:26 [INFO] carla_server - reset_environment:1347 - Quick reset: reusing existing scenario for route 0
+2025-09-29 21:43:26 [INFO] carla_server - reset_environment:1459 - Calling my_load_scenario...
+2025-09-29 21:43:26 [INFO] carla_server - my_load_scenario:434 - my_load_scenario: Starting function
+2025-09-29 21:43:26 [INFO] carla_server - my_load_scenario:439 - ========= Preparing RouteScenario_2050 (repetition 0) =========
+2025-09-29 21:43:26 [INFO] carla_server - my_load_scenario:451 - Loading the world
+2025-09-29 21:43:26 [INFO] carla_server - my_load_scenario:455 - my_load_scenario: Calling _load_and_wait_for_world for town Town12
+2025-09-29 21:43:26 [INFO] carla_server - _load_and_wait_for_world:409 - Town Town12 already loaded, skipping reload
+2025-09-29 21:43:29 [INFO] carla_server - my_load_scenario:457 - my_load_scenario: Creating RouteScenario
+Killed

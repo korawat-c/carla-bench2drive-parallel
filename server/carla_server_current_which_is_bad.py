@@ -387,44 +387,73 @@ sensors_to_icons = {
 
 def _load_and_wait_for_world(leaderboard_evaluator_self, args, town):
     """Load the specified town in CARLA"""
-    try:
-        # Make sure we have a world object
-        if not hasattr(leaderboard_evaluator_self, 'world') or leaderboard_evaluator_self.world is None:
-            if hasattr(leaderboard_evaluator_self, 'client') and leaderboard_evaluator_self.client:
-                leaderboard_evaluator_self.world = leaderboard_evaluator_self.client.get_world()
-                logger.info("Initialized world from client")
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            logger.info(f"Loading world (attempt {attempt + 1}/{max_attempts})")
+
+            # Make sure we have a world object
+            if not hasattr(leaderboard_evaluator_self, 'world') or leaderboard_evaluator_self.world is None:
+                if hasattr(leaderboard_evaluator_self, 'client') and leaderboard_evaluator_self.client:
+                    leaderboard_evaluator_self.world = leaderboard_evaluator_self.client.get_world()
+                    logger.info("Initialized world from client")
+                else:
+                    raise RuntimeError("No client available to get world from")
+
+            # Check if we need to reload the world
+            current_map = leaderboard_evaluator_self.world.get_map()
+            current_map_name = current_map.name.split('/')[-1]  # Get just the town name
+
+            if current_map_name != town:
+                logger.info(f"Current map: {current_map_name}, loading new town: {town}")
+                leaderboard_evaluator_self.world = leaderboard_evaluator_self.client.load_world(town)
+
+                # Wait for world to be ready
+                import time
+                for i in range(10):  # Wait up to 10 seconds
+                    try:
+                        leaderboard_evaluator_self.world.tick()
+                        time.sleep(1)
+                        logger.info(f"World tick {i + 1} successful")
+                        break
+                    except Exception as tick_error:
+                        logger.warning(f"World tick {i + 1} failed: {tick_error}")
+                        if i == 9:  # Last attempt
+                            raise RuntimeError(f"Failed to tick world after loading: {tick_error}")
+                        time.sleep(1)
+
+                logger.info(f"Town {town} loaded successfully")
             else:
-                raise RuntimeError("No client available to get world from")
-        
-        # Check if we need to reload the world
-        current_map = leaderboard_evaluator_self.world.get_map()
-        current_map_name = current_map.name.split('/')[-1]  # Get just the town name
-        
-        if current_map_name != town:
-            logger.info(f"Current map: {current_map_name}, loading new town: {town}")
-            leaderboard_evaluator_self.world = leaderboard_evaluator_self.client.load_world(town)
-            leaderboard_evaluator_self.world.tick()
-            logger.info(f"Town {town} loaded successfully")
-        else:
-            logger.info(f"Town {town} already loaded, skipping reload")
-        
-        # Apply world settings (always, regardless of reload)
-        settings = leaderboard_evaluator_self.world.get_settings()
-        settings.synchronous_mode = True
-        settings.fixed_delta_seconds = 1.0 / leaderboard_evaluator_self.frame_rate
-        leaderboard_evaluator_self.world.apply_settings(settings)
-            
-        # Set traffic manager
-        leaderboard_evaluator_self.traffic_manager.set_synchronous_mode(True)
-        leaderboard_evaluator_self.traffic_manager.set_hybrid_physics_mode(True)
-        
-        # Initialize CarlaDataProvider
-        CarlaDataProvider.set_client(leaderboard_evaluator_self.client)
-        CarlaDataProvider.set_world(leaderboard_evaluator_self.world)
-        CarlaDataProvider.set_traffic_manager_port(leaderboard_evaluator_self.traffic_manager.get_port())
-        
-    except Exception as e:
-        logger.error(f"Error loading world: {e}")
+                logger.info(f"Town {town} already loaded, skipping reload")
+
+            # Apply world settings (always, regardless of reload)
+            settings = leaderboard_evaluator_self.world.get_settings()
+            settings.synchronous_mode = True
+            settings.fixed_delta_seconds = 1.0 / leaderboard_evaluator_self.frame_rate
+            leaderboard_evaluator_self.world.apply_settings(settings)
+
+            # Set traffic manager
+            leaderboard_evaluator_self.traffic_manager.set_synchronous_mode(True)
+            leaderboard_evaluator_self.traffic_manager.set_hybrid_physics_mode(True)
+
+            # Initialize CarlaDataProvider
+            CarlaDataProvider.set_client(leaderboard_evaluator_self.client)
+            CarlaDataProvider.set_world(leaderboard_evaluator_self.world)
+            CarlaDataProvider.set_traffic_manager_port(leaderboard_evaluator_self.traffic_manager.get_port())
+
+            logger.info("World loaded and configured successfully")
+            return  # Success
+
+        except Exception as e:
+            logger.error(f"Error loading world (attempt {attempt + 1}): {e}")
+            if attempt < max_attempts - 1:
+                logger.info("Waiting 3 seconds before retry...")
+                import time
+                time.sleep(3)
+                continue
+            else:
+                logger.error(f"Failed to load world after {max_attempts} attempts")
+                raise
         raise
 
 # Building block functions from baseline_v3
@@ -810,13 +839,9 @@ class SimulationState:
         self.carla_port = None
         self.api_port = None
         
-    def reset(self, stop_scenario=True):
-        """Reset internal state
-
-        Args:
-            stop_scenario: If True, stop the current scenario. If False, just reset counters.
-        """
-        if self.leaderboard_evaluator and stop_scenario:
+    def reset(self):
+        """Reset internal state"""
+        if self.leaderboard_evaluator:
             try:
                 my_stop_scenario(
                     self.leaderboard_evaluator,
@@ -868,29 +893,22 @@ def get_observation_from_state(evaluator) -> Dict[str, Any]:
         # Get sensor data from the API Agent
         if hasattr(evaluator, 'agent_instance') and hasattr(evaluator.agent_instance, 'get_last_sensor_data'):
             sensor_data = evaluator.agent_instance.get_last_sensor_data()
-            logger.debug(f"Sensor data type: {type(sensor_data)}, content: {sensor_data}")
-
+            
             if sensor_data and isinstance(sensor_data, dict):
-                logger.debug(f"Sensor data keys: {list(sensor_data.keys())}")
                 # Extract camera images using the same format as dummy_agent3
                 for camera_id in ['Center', 'Left', 'Right']:
                     if camera_id in sensor_data:
                         try:
                             # Get RGB image from tuple (timestamp, image_array)
                             camera_tuple = sensor_data[camera_id]
-                            logger.debug(f"Camera {camera_id} data type: {type(camera_tuple)}, content: {camera_tuple}")
                             if isinstance(camera_tuple, tuple) and len(camera_tuple) >= 2:
                                 rgb_image = camera_tuple[1][:, :, :3]  # Get image array and remove alpha
                                 obs["images"][camera_id.lower()] = encode_image_to_base64(rgb_image)
                                 if sim_state.step_count < 3:
                                     logger.debug(f"Captured {camera_id} camera image: {rgb_image.shape}")
-                            else:
-                                logger.warning(f"Camera {camera_id} data is not in expected tuple format: {camera_tuple}")
                         except Exception as e:
-                            logger.error(f"Error processing {camera_id} camera: {e}")
-                            logger.error(f"Camera {camera_id} data: {sensor_data[camera_id]}")
-                    else:
-                        logger.warning(f"Camera {camera_id} not found in sensor data")
+                            if sim_state.step_count < 3:
+                                logger.error(f"Error processing {camera_id} camera: {e}")
                 
                 # Extract speed from speedometer
                 if 'SPEED' in sensor_data:
@@ -1336,23 +1354,26 @@ async def set_seed(request: SeedRequest):
 @app.post("/reset")
 async def reset_environment(request: ResetRequest):
     """Reset environment and return initial observation"""
-    try:
-        logger.info(f"Reset endpoint called with route_id={request.route_id}")
-        # Check if we can do a quick reset (same scenario)
-        quick_reset = False
-        if (sim_state.current_config is not None and 
-            sim_state.current_route == request.route_id and
-            sim_state.manager_scenario is not None):
-            quick_reset = True
-            logger.info(f"Quick reset: reusing existing scenario for route {request.route_id}")
-        
-        # Reset state (don't stop scenario during quick reset)
-        sim_state.reset(stop_scenario=not quick_reset)
-        sim_state.current_route = request.route_id
-        
-        # Setup simulation if needed
-        if sim_state.leaderboard_evaluator is None:
-            logger.info("Setting up new LeaderboardEvaluator")
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
+            logger.info(f"Reset endpoint called with route_id={request.route_id} (attempt {attempt + 1}/{max_attempts})")
+
+            # Check if we can do a quick reset (same scenario)
+            quick_reset = False
+            if (sim_state.current_config is not None and
+                sim_state.current_route == request.route_id and
+                sim_state.manager_scenario is not None):
+                quick_reset = True
+                logger.info(f"Quick reset: reusing existing scenario for route {request.route_id}")
+
+            # Reset state
+            sim_state.reset()
+            sim_state.current_route = request.route_id
+
+            # Setup simulation if needed
+            if sim_state.leaderboard_evaluator is None:
+                logger.info("Setting up new LeaderboardEvaluator")
             # Create arguments namespace
             args = argparse.Namespace()
             
@@ -1428,137 +1449,156 @@ async def reset_environment(request: ResetRequest):
             sim_state.leaderboard_evaluator = leaderboard_evaluator
             sim_state.route_indexer = route_indexer
         
-        # Get route configuration
-        if request.route_id is not None:
-            # Try to find specific route
-            want_route = f"RouteScenario_{request.route_id}"
-            route_config = None
-            for i in range(sim_state.route_indexer.total):
-                config_temp = sim_state.route_indexer.get_next_config()
-                if config_temp is None:
-                    break
-                if config_temp.name == want_route or str(request.route_id) in config_temp.name:
-                    route_config = config_temp
-                    break
-            
-            # If not found, get the first available route
-            if route_config is None:
-                sim_state.route_indexer.index = 0  # Reset to beginning
+            # Get route configuration
+            if request.route_id is not None:
+                # Try to find specific route
+                want_route = f"RouteScenario_{request.route_id}"
+                route_config = None
+                for i in range(sim_state.route_indexer.total):
+                    config_temp = sim_state.route_indexer.get_next_config()
+                    if config_temp is None:
+                        break
+                    if config_temp.name == want_route or str(request.route_id) in config_temp.name:
+                        route_config = config_temp
+                        break
+
+                # If not found, get the first available route
+                if route_config is None:
+                    sim_state.route_indexer.index = 0  # Reset to beginning
+                    route_config = sim_state.route_indexer.get_next_config()
+            else:
+                # Get next available route
                 route_config = sim_state.route_indexer.get_next_config()
-        else:
-            # Get next available route
-            route_config = sim_state.route_indexer.get_next_config()
-        
-        if route_config is None:
-            raise HTTPException(status_code=400, detail="No routes available")
-        
-        sim_state.config = route_config
-        sim_state.current_config = route_config  # Store for quick reset check
-        
-        # Load scenario with proper config
-        logger.info("Calling my_load_scenario...")
-        try:
-            result = my_load_scenario(
-                sim_state.leaderboard_evaluator, 
-                sim_state.args, 
-                route_config
+
+            if route_config is None:
+                raise HTTPException(status_code=400, detail="No routes available")
+
+            sim_state.config = route_config
+            sim_state.current_config = route_config  # Store for quick reset check
+
+            # Load scenario with proper config
+            logger.info("Calling my_load_scenario...")
+            try:
+                result = my_load_scenario(
+                    sim_state.leaderboard_evaluator,
+                    sim_state.args,
+                    route_config
+                )
+                logger.info(f"my_load_scenario returned: {result}")
+
+                if result is None:
+                    logger.error("my_load_scenario returned None - this should not happen")
+                    raise HTTPException(status_code=500, detail="Failed to load scenario - my_load_scenario returned None")
+
+                crash_flag, save_name, entry_status, crash_message = result
+            except Exception as e:
+                logger.error(f"Error calling my_load_scenario: {e}")
+                traceback.print_exc()
+                raise
+
+            if crash_flag:
+                raise HTTPException(status_code=500, detail=f"Failed to load scenario: {crash_message}")
+
+            # Save name for the model
+            model_name = 'api_agent'
+            save_name = save_name + '_' + model_name
+
+            # Load the agent (API Agent)
+            crash_flag, entry_status, crash_message = my_load_agent(
+                sim_state.leaderboard_evaluator,
+                sim_state.args,
+                route_config,
+                save_name,
+                entry_status,
+                crash_message
             )
-            logger.info(f"my_load_scenario returned: {result}")
-            
-            if result is None:
-                logger.error("my_load_scenario returned None - this should not happen")
-                raise HTTPException(status_code=500, detail="Failed to load scenario - my_load_scenario returned None")
-            
-            crash_flag, save_name, entry_status, crash_message = result
-        except Exception as e:
-            logger.error(f"Error calling my_load_scenario: {e}")
-            traceback.print_exc()
-            raise
-        
-        if crash_flag:
-            raise HTTPException(status_code=500, detail=f"Failed to load scenario: {crash_message}")
-        
-        # Save name for the model
-        model_name = 'api_agent'
-        save_name = save_name + '_' + model_name
-        
-        # Load the agent (API Agent)
-        crash_flag, entry_status, crash_message = my_load_agent(
-            sim_state.leaderboard_evaluator,
-            sim_state.args,
-            route_config,
-            save_name,
-            entry_status,
-            crash_message
-        )
-        
-        if crash_flag:
-            raise HTTPException(status_code=500, detail=f"Failed to load agent: {crash_message}")
-        
-        # Store the agent instance for API interaction
-        sim_state.agent_instance = sim_state.leaderboard_evaluator.agent_instance
-        
-        # Load and setup the route scenario
-        crash_flag, entry_status, crash_message = my_load_route_scenario(
-            sim_state.leaderboard_evaluator,
-            sim_state.args,
-            route_config,
-            entry_status,
-            crash_message
-        )
-        
-        if crash_flag:
-            raise HTTPException(status_code=500, detail=f"Failed to load route scenario: {crash_message}")
-        
-        # Setup scenario execution
-        my_run_scenario_setup(sim_state.leaderboard_evaluator)
-        
-        # Store manager for quick reset check
-        if hasattr(sim_state.leaderboard_evaluator, 'manager'):
-            sim_state.manager_scenario = sim_state.leaderboard_evaluator.manager
-        
-        # Store initial state
-        sim_state.entry_status = entry_status
-        sim_state.crash_message = crash_message
-        
-        # IMPORTANT: We need to tick once to get initial sensor data!
-        logger.info("Ticking once to get initial sensor data...")
-        try:
-            # Do one tick to populate sensor data
-            crash_flag, entry_status, crash_message = my_run_scenario_step(
+
+            if crash_flag:
+                raise HTTPException(status_code=500, detail=f"Failed to load agent: {crash_message}")
+
+            # Store the agent instance for API interaction
+            sim_state.agent_instance = sim_state.leaderboard_evaluator.agent_instance
+
+            # Load and setup the route scenario
+            crash_flag, entry_status, crash_message = my_load_route_scenario(
+                sim_state.leaderboard_evaluator,
+                sim_state.args,
+                route_config,
+                entry_status,
+                crash_message
+            )
+
+            if crash_flag:
+                raise HTTPException(status_code=500, detail=f"Failed to load route scenario: {crash_message}")
+
+            # Setup scenario execution
+            my_run_scenario_setup(sim_state.leaderboard_evaluator)
+
+            # Store manager for quick reset check
+            if hasattr(sim_state.leaderboard_evaluator, 'manager'):
+                sim_state.manager_scenario = sim_state.leaderboard_evaluator.manager
+
+            # Store initial state
+            sim_state.entry_status = entry_status
+            sim_state.crash_message = crash_message
+
+            # IMPORTANT: We need to tick once to get initial sensor data!
+            logger.info("Ticking once to get initial sensor data...")
+            try:
+                # Do one tick to populate sensor data
+                crash_flag, entry_status, crash_message = my_run_scenario_step(
                 sim_state.leaderboard_evaluator,
                 entry_status,
                 crash_message,
                 n_steps=1
             )
-            if crash_flag:
-                logger.warning(f"Initial tick had issue: {crash_message}")
-        except Exception as e:
-            logger.warning(f"Warning during initial tick: {e}")
-        
-        # Now get initial observation from agent's sensor data
-        obs = get_observation_from_state(sim_state.leaderboard_evaluator)
-        sim_state.last_observation = obs
+                if crash_flag:
+                    logger.warning(f"Initial tick had issue: {crash_message}")
+            except Exception as e:
+                logger.warning(f"Warning during initial tick: {e}")
+
+            # Now get initial observation from agent's sensor data
+                obs = get_observation_from_state(sim_state.leaderboard_evaluator)
+                sim_state.last_observation = obs
         
         # Get vehicle state for info
-        info = {
-            "route_id": sim_state.current_route,
-            "seed": sim_state.seed
-        }
-        
-        # Add vehicle state to info if available in observation
-        if isinstance(obs, dict) and "vehicle_state" in obs:
-            info["vehicle_state"] = obs["vehicle_state"]
-        
-        return {
-            "observation": obs,
-            "info": info
-        }
-        
-    except Exception as e:
-        logger.error(f"Error in reset: {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+                info = {
+                    "route_id": sim_state.current_route,
+                    "seed": sim_state.seed
+                }
+
+                # Add vehicle state to info if available in observation
+                if isinstance(obs, dict) and "vehicle_state" in obs:
+                    info["vehicle_state"] = obs["vehicle_state"]
+
+                return {
+                    "observation": obs,
+                    "info": info
+                }
+
+        except Exception as e:
+            logger.error(f"Reset attempt {attempt + 1} failed: {e}")
+            traceback.print_exc()
+
+            if attempt < max_attempts - 1:
+                # Try to recover by cleaning up and retrying
+                logger.info(f"Attempting to recover from reset failure...")
+                try:
+                    # Clean up failed state
+                    if sim_state.leaderboard_evaluator is not None:
+                        _cleanup(sim_state.leaderboard_evaluator)
+                    sim_state.reset()
+
+                    # Wait a moment before retry
+                    import time
+                    time.sleep(2)
+                    continue
+                except Exception as recovery_error:
+                    logger.error(f"Recovery attempt failed: {recovery_error}")
+                    continue
+            else:
+                logger.error(f"Reset failed after {max_attempts} attempts")
+                raise HTTPException(status_code=500, detail=f"Failed to reset after {max_attempts} attempts: {str(e)}")
 
 @app.post("/step", response_model=StepResponse)
 async def step_environment(request: StepRequest):
@@ -1812,29 +1852,7 @@ async def restore_snapshot(request: RestoreRequest):
             raise HTTPException(status_code=400, detail="No active simulation")
         
         if snapshot_id not in sim_state.snapshots:
-            # Try to load from disk
-            snapshot_file = sim_state.snapshot_dir / f"{snapshot_id}.json"
-            if snapshot_file.exists():
-                try:
-                    logger.info(f"Loading snapshot {snapshot_id} from disk: {snapshot_file}")
-                    with open(snapshot_file, 'r') as f:
-                        snapshot_data = json.load(f)
-
-                    # Create a simple snapshot object with the expected format
-                    class SimpleSnapshot:
-                        def __init__(self, data):
-                            self.vehicles_state = data.get('vehicles_state', [])
-                            self.timestamp = data.get('timestamp', 0.0)
-                            self.snapshot_id = data.get('snapshot_id', snapshot_id)
-
-                    snapshot = SimpleSnapshot(snapshot_data)
-                    sim_state.snapshots[snapshot_id] = snapshot
-                    logger.info(f"Successfully loaded snapshot {snapshot_id} from disk with {len(snapshot.vehicles_state)} vehicles")
-                except Exception as e:
-                    logger.error(f"Failed to load snapshot {snapshot_id} from disk: {e}")
-                    raise HTTPException(status_code=404, detail=f"Snapshot {snapshot_id} not found in memory and failed to load from disk")
-            else:
-                raise HTTPException(status_code=404, detail=f"Snapshot {snapshot_id} not found")
+            raise HTTPException(status_code=404, detail=f"Snapshot {snapshot_id} not found")
         
         snapshot = sim_state.snapshots[snapshot_id]
         

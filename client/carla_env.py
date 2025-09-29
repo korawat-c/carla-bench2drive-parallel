@@ -153,30 +153,43 @@ class CarlaEnv(gym.Env):
         if options:
             reset_data.update(options)
         
-        try:
-            # Send reset request to server
-            response = requests.post(
-                f"{self.server_url}/reset",
-                json=reset_data,
-                timeout=self.timeout * 2  # Longer timeout for reset
-            )
-            response.raise_for_status()
-            data = response.json()
-            
-            # Process observation
-            observation = self._process_observation(data['observation'])
-            self.last_observation = observation
-            
-            # Create info dictionary
-            info = data.get('info', {})
-            info['episode_steps'] = self.episode_steps
-            info['episode_reward'] = self.episode_reward
-            
-            return observation, info
-            
-        except Exception as e:
-            logger.error(f"Failed to reset environment: {e}")
-            raise RuntimeError(f"Failed to reset CARLA environment: {e}")
+        # Add retry logic for reset
+        max_retries = 3
+        retry_delay = 5
+
+        for attempt in range(max_retries):
+            try:
+                # Send reset request to server
+                response = requests.post(
+                    f"{self.server_url}/reset",
+                    json=reset_data,
+                    timeout=self.timeout * 2  # Longer timeout for reset
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                # Process observation
+                observation = self._process_observation(data['observation'])
+                self.last_observation = observation
+
+                # Create info dictionary
+                info = data.get('info', {})
+                info['episode_steps'] = self.episode_steps
+                info['episode_reward'] = self.episode_reward
+
+                return observation, info
+
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Reset attempt {attempt + 1} failed, retrying in {retry_delay}s: {e}")
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    logger.error(f"Failed to reset environment after {max_retries} attempts: {e}")
+                    raise RuntimeError(f"Failed to reset CARLA environment: {e}")
+            except Exception as e:
+                logger.error(f"Failed to reset environment: {e}")
+                raise RuntimeError(f"Failed to reset CARLA environment: {e}")
     
     def step(self, action: np.ndarray) -> Tuple[Dict[str, Any], float, bool, bool, Dict[str, Any]]:
         """
@@ -205,57 +218,70 @@ class CarlaEnv(gym.Env):
             "steer": float(action[2])
         }
         
-        try:
-            # Execute action with frame skip
-            total_reward = 0.0
-            terminated = False
-            truncated = False
-            info = {}
-            
-            for _ in range(self.frame_skip):
-                # Send step request
-                response = requests.post(
-                    f"{self.server_url}/step",
-                    json={"action": action_dict, "n_steps": 1},
-                    timeout=self.timeout
-                )
-                response.raise_for_status()
-                data = response.json()
-                
-                # Accumulate reward
-                total_reward += data['reward']
-                
-                # Check termination
-                terminated = terminated or data['terminated']
-                truncated = truncated or data['truncated']
-                
-                # Update info
-                info.update(data['info'])
-                
-                if terminated or truncated:
-                    break
-            
-            # Process final observation
-            observation = self._process_observation(data['observation'])
-            self.last_observation = observation
-            
-            # Update episode tracking
-            self.episode_steps += 1
-            self.episode_reward += total_reward
-            
-            # Check for truncation due to max steps
-            if self.episode_steps >= self.max_steps:
-                truncated = True
-            
-            # Add episode info
-            info['episode_steps'] = self.episode_steps
-            info['episode_reward'] = self.episode_reward
-            
-            return observation, total_reward, terminated, truncated, info
-            
-        except Exception as e:
-            logger.error(f"Failed to step environment: {e}")
-            raise RuntimeError(f"Failed to step CARLA environment: {e}")
+        # Add retry logic for step
+        max_retries = 3
+        retry_delay = 2
+
+        for attempt in range(max_retries):
+            try:
+                # Execute action with frame skip
+                total_reward = 0.0
+                terminated = False
+                truncated = False
+                info = {}
+
+                for _ in range(self.frame_skip):
+                    # Send step request
+                    response = requests.post(
+                        f"{self.server_url}/step",
+                        json={"action": action_dict, "n_steps": 1},
+                        timeout=self.timeout
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+
+                    # Accumulate reward
+                    total_reward += data['reward']
+
+                    # Check termination
+                    terminated = terminated or data['terminated']
+                    truncated = truncated or data['truncated']
+
+                    # Update info
+                    info.update(data['info'])
+
+                    if terminated or truncated:
+                        break
+
+                # Process final observation
+                observation = self._process_observation(data['observation'])
+                self.last_observation = observation
+
+                # Update episode tracking
+                self.episode_steps += 1
+                self.episode_reward += total_reward
+
+                # Check for truncation due to max steps
+                if self.episode_steps >= self.max_steps:
+                    truncated = True
+
+                # Add episode info
+                info['episode_steps'] = self.episode_steps
+                info['episode_reward'] = self.episode_reward
+
+                return observation, total_reward, terminated, truncated, info
+
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Step attempt {attempt + 1} failed, retrying in {retry_delay}s: {e}")
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    logger.error(f"Failed to step environment after {max_retries} attempts: {e}")
+                    raise RuntimeError(f"Failed to step CARLA environment: {e}")
+            except Exception as e:
+                logger.error(f"Failed to step environment: {e}")
+                raise RuntimeError(f"Failed to step CARLA environment: {e}")
     
     def render(self) -> Optional[np.ndarray]:
         """
@@ -303,27 +329,41 @@ class CarlaEnv(gym.Env):
         Returns:
             snapshot_id: Unique identifier for the snapshot
         """
-        try:
-            response = requests.post(
-                f"{self.server_url}/snapshot",
-                timeout=self.timeout
-            )
-            response.raise_for_status()
-            data = response.json()
-            
-            snapshot_id = data['snapshot_id']
-            self.snapshots[snapshot_id] = {
-                'episode_steps': self.episode_steps,
-                'episode_reward': self.episode_reward,
-                'last_observation': self.last_observation
-            }
-            
-            logger.info(f"Saved snapshot: {snapshot_id}")
-            return snapshot_id
-            
-        except Exception as e:
-            logger.error(f"Failed to save snapshot: {e}")
-            raise RuntimeError(f"Failed to save snapshot: {e}")
+        # Add retry logic for snapshot
+        max_retries = 3
+        retry_delay = 2
+
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    f"{self.server_url}/snapshot",
+                    json={"snapshot_id": None},
+                    timeout=self.timeout
+                )
+                response.raise_for_status()
+                data = response.json()
+
+                snapshot_id = data['snapshot_id']
+                self.snapshots[snapshot_id] = {
+                    'episode_steps': self.episode_steps,
+                    'episode_reward': self.episode_reward,
+                    'last_observation': self.last_observation
+                }
+
+                logger.info(f"Saved snapshot: {snapshot_id}")
+                return snapshot_id
+
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Snapshot attempt {attempt + 1} failed, retrying in {retry_delay}s: {e}")
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    logger.error(f"Failed to save snapshot after {max_retries} attempts: {e}")
+                    raise RuntimeError(f"Failed to save snapshot: {e}")
+            except Exception as e:
+                logger.error(f"Failed to save snapshot: {e}")
+                raise RuntimeError(f"Failed to save snapshot: {e}")
     
     def restore_snapshot(self, snapshot_id: str):
         """
@@ -332,29 +372,50 @@ class CarlaEnv(gym.Env):
         Args:
             snapshot_id: Identifier of the snapshot to restore
         """
-        if snapshot_id not in self.snapshots:
-            raise ValueError(f"Unknown snapshot: {snapshot_id}")
+        # Remove client-side validation - server will handle snapshot existence check
+        # if snapshot_id not in self.snapshots:
+        #     raise ValueError(f"Unknown snapshot: {snapshot_id}")
         
-        try:
-            # Restore server state
-            response = requests.post(
-                f"{self.server_url}/restore",
-                json={"snapshot_id": snapshot_id},
-                timeout=self.timeout
-            )
-            response.raise_for_status()
-            
-            # Restore local state
-            local_state = self.snapshots[snapshot_id]
-            self.episode_steps = local_state['episode_steps']
-            self.episode_reward = local_state['episode_reward']
-            self.last_observation = local_state['last_observation']
-            
-            logger.info(f"Restored snapshot: {snapshot_id}")
-            
-        except Exception as e:
-            logger.error(f"Failed to restore snapshot: {e}")
-            raise RuntimeError(f"Failed to restore snapshot: {e}")
+        # Add retry logic for restore
+        max_retries = 3
+        retry_delay = 2
+
+        for attempt in range(max_retries):
+            try:
+                # Restore server state
+                response = requests.post(
+                    f"{self.server_url}/restore",
+                    json={"snapshot_id": snapshot_id},
+                    timeout=self.timeout
+                )
+                response.raise_for_status()
+
+                # Restore local state if available (may not exist for cross-server restores)
+                if snapshot_id in self.snapshots:
+                    local_state = self.snapshots[snapshot_id]
+                    self.episode_steps = local_state['episode_steps']
+                    self.episode_reward = local_state['episode_reward']
+                    self.last_observation = local_state['last_observation']
+                    logger.info(f"Restored snapshot: {snapshot_id} with local state")
+                else:
+                    # For cross-server restores, reset local state
+                    self.episode_steps = 0
+                    self.episode_reward = 0.0
+                    self.last_observation = None
+                    logger.info(f"Restored snapshot: {snapshot_id} (cross-server, no local state)")
+                return
+
+            except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Restore attempt {attempt + 1} failed, retrying in {retry_delay}s: {e}")
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    logger.error(f"Failed to restore snapshot after {max_retries} attempts: {e}")
+                    raise RuntimeError(f"Failed to restore snapshot: {e}")
+            except Exception as e:
+                logger.error(f"Failed to restore snapshot: {e}")
+                raise RuntimeError(f"Failed to restore snapshot: {e}")
     
     def reset_from_snapshot(self) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """

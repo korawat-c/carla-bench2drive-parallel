@@ -58,20 +58,18 @@ class GRPOVisualTester:
         # Create subdirectories for different phases
         self.phase_dirs = {
             "phase1_single": self.output_dir / "1_single_exploration_90steps",
-            "phase2_branch": self.output_dir / "2_branching_20steps",
-            "branch0_straight": self.output_dir / "2_branching_20steps" / "agent0_straight",
-            "branch1_left": self.output_dir / "2_branching_20steps" / "agent1_left",
-            "branch2_right": self.output_dir / "2_branching_20steps" / "agent2_right",
-            "branch3_random": self.output_dir / "2_branching_20steps" / "agent3_random",
-            "phase3_continue": self.output_dir / "3_continue_agent3_50steps"
+            "phase2_branch": self.output_dir / "2_branching_50steps",
+            "branch0_straight": self.output_dir / "2_branching_50steps" / "agent0_straight",
+            "branch1_left": self.output_dir / "2_branching_50steps" / "agent1_left",
+            "phase3_continue": self.output_dir / "3_continue_agent1_50steps"
         }
         
         for phase_dir in self.phase_dirs.values():
             phase_dir.mkdir(parents=True, exist_ok=True)
         
-        # Create GRPO environment with 4 branches max
+        # Create GRPO environment with 2 branches max
         self.env = GRPOCarlaEnv(
-            num_services=4,
+            num_services=2,
             base_api_port=base_port,
             render_mode="rgb_array",
             max_steps=200,
@@ -83,12 +81,10 @@ class GRPOVisualTester:
             "phase1": [],
             "branch0": [],
             "branch1": [],
-            "branch2": [],
-            "branch3": [],
             "phase3": []
         }
         
-        # Random steering history for agent 4
+        # Random steering history for agent 1
         self.random_steers = []
         
     def extract_position(self, observation: Dict) -> Optional[Dict[str, float]]:
@@ -231,7 +227,7 @@ class GRPOVisualTester:
         # Run 90 steps with forward action
         for step in range(1, 91):
             # Simple forward action
-            action = np.array([1.0, 0.0, 0.0])  # [throttle, brake, steer]
+            action = np.array([1.0, 0.0, 0.0], dtype=np.float32)  # [throttle, brake, steer]
             
             # Single step (not branch_step since we're in single mode)
             try:
@@ -280,46 +276,38 @@ class GRPOVisualTester:
         snapshot_id = self.env.save_snapshot()
         logger.info(f"Snapshot saved: {snapshot_id}")
         
-        # Enable branching with 4 branches
-        logger.info("Enabling branching mode with 4 agents...")
-        status = self.env.enable_branching(snapshot_id, num_branches=4, async_setup=False)
-        
+        # Enable branching with 2 branches
+        logger.info("Enabling branching mode with 2 agents...")
+        status = self.env.enable_branching(snapshot_id, num_branches=2, async_setup=False)
+
         if status.status != EnvStatus.BRANCHING_READY:
             logger.error(f"Failed to enable branching: {status.message}")
             return
-        
+
         logger.info(f"Branching enabled. Mode: {self.env.current_mode}, is_branching: {self.env.is_branching}")
         logger.info("Agent behaviors:")
         logger.info("  Agent 0: Straight (throttle=1.0, steer=0.0)")
-        logger.info("  Agent 1: Left turn (throttle=1.0, steer=-1.0)")
-        logger.info("  Agent 2: Right turn (throttle=1.0, steer=1.0)")
-        logger.info("  Agent 3: Random steering (throttle=1.0, steer=random[-1,1])")
+        logger.info("  Agent 1: Random steering (throttle=1.0, steer=random[-1,1])")
         
-        # Run 20 steps with different behaviors
-        for step in range(91, 111):  # Steps 91-110
+        # Run 50 steps with different behaviors
+        for step in range(91, 141):  # Steps 91-140
             # Generate actions for each agent
             actions = []
-            
+
             # Agent 0: Straight
-            actions.append(np.array([1.0, 0.0, 0.0]))
-            
-            # Agent 1: Left turn
-            actions.append(np.array([1.0, 0.0, -1.0]))
-            
-            # Agent 2: Right turn
-            actions.append(np.array([1.0, 0.0, 1.0]))
-            
-            # Agent 3: Random steering
+            actions.append(np.array([1.0, 0.0, 0.0], dtype=np.float32))
+
+            # Agent 1: Random steering
             random_steer = random.uniform(-1.0, 1.0)
             self.random_steers.append(random_steer)
-            actions.append(np.array([1.0, 0.0, random_steer]))
+            actions.append(np.array([1.0, 0.0, random_steer], dtype=np.float32))
             
             # Branch step (not single_step since we're in branching mode)
             try:
                 observations, rewards, terminateds, truncateds, infos = self.env.branch_step(actions)
                 
                 # Process each branch
-                for i in range(4):
+                for i in range(2):
                     # Check status
                     if 'status' in infos[i]:
                         status = infos[i]['status']
@@ -331,11 +319,11 @@ class GRPOVisualTester:
                     if position:
                         self.position_history[f"branch{i}"].append(position)
                     
-                    # Save images every 5 steps
-                    if (step - 91) % 5 == 0 or step == 91 or step == 110:
+                    # Save images every 10 steps
+                    if (step - 91) % 10 == 0 or step == 91 or step == 110:
                         self.extract_and_save_image(
-                            observations[i], 
-                            step, 
+                            observations[i],
+                            step,
                             f"Phase 2 - Branch {i}",
                             branch_id=i,
                             action=actions[i]
@@ -344,13 +332,13 @@ class GRPOVisualTester:
                     if terminateds[i] or truncateds[i]:
                         logger.info(f"Agent {i} terminated at step {step}")
                 
-                # Log progress every 5 steps
-                if (step - 91) % 5 == 0:
+                # Log progress every 10 steps
+                if (step - 91) % 10 == 0:
                     logger.info(f"Step {step}:")
-                    for i in range(4):
+                    for i in range(2):
                         pos = self.extract_position(observations[i])
                         if pos:
-                            agent_types = ["Straight", "Left", "Right", f"Random({self.random_steers[-1]:.2f})"]
+                            agent_types = ["Straight", f"Random({self.random_steers[-1]:.2f})"]
                             logger.info(f"  Agent {i} ({agent_types[i]}): "
                                       f"X={pos['x']:.1f}, Y={pos['y']:.1f}, reward={rewards[i]:.2f}")
                 
@@ -366,15 +354,15 @@ class GRPOVisualTester:
         self.last_branch_observations = observations
         return observations
     
-    def run_phase3_continue_agent3(self, branch_observations):
-        """Phase 3: Select Agent 3 (random) and continue for 50 steps."""
+    def run_phase3_continue_agent1(self, branch_observations):
+        """Phase 3: Select Agent 1 (random) and continue for 50 steps."""
         logger.info("\n" + "="*60)
-        logger.info("PHASE 3: Continue with Agent 3 (Random Steering, 50 steps)")
+        logger.info("PHASE 3: Continue with Agent 1 (Random Steering, 50 steps)")
         logger.info("="*60)
         
-        # Select Agent 3 (index 3) - the random steering agent
-        logger.info("Selecting Agent 3 (random steering) to continue...")
-        self.env.select_branch(3)
+        # Select Agent 1 (index 1) - the random steering agent
+        logger.info("Selecting Agent 1 (random steering) to continue...")
+        self.env.select_branch(1)
         
         logger.info(f"Returned to single mode. Mode: {self.env.current_mode}, is_branching: {self.env.is_branching}")
         
@@ -387,11 +375,11 @@ class GRPOVisualTester:
         # Continue for 50 steps with random steering
         logger.info("Continuing with random steering strategy for 50 steps...")
         
-        for step in range(111, 161):  # Steps 111-160
-            # Generate random steering like Agent 3 did
+        for step in range(141, 191):  # Steps 141-190
+            # Generate random steering like Agent 1 did
             random_steer = random.uniform(-1.0, 1.0)
             self.random_steers.append(random_steer)
-            action = np.array([1.0, 0.0, random_steer])  # [throttle, brake, steer]
+            action = np.array([1.0, 0.0, random_steer], dtype=np.float32)  # [throttle, brake, steer]
             
             try:
                 # Use single_step since we're back in single mode
@@ -478,14 +466,22 @@ class GRPOVisualTester:
         logger.info(f"Max branches: {self.env.max_branches}")
         
         try:
+            # Pre-initialize all services for fast branching
+            logger.info("Pre-initializing all services for fast branching...")
+            init_status = self.env.initialize_all_services(route_id=0)
+            if init_status.ready:
+                logger.info("✓ All services pre-initialized successfully")
+            else:
+                logger.warning(f"⚠ Service pre-initialization issues: {init_status.message}")
+
             # Phase 1: Single exploration (90 steps)
             last_obs = self.run_phase1_single_exploration()
-            
-            # Phase 2: Branching with 4 agents (20 steps)
+
+            # Phase 2: Branching with 2 agents (50 steps)
             branch_observations = self.run_phase2_branching(last_obs)
-            
-            # Phase 3: Continue with Agent 3 (50 steps)
-            self.run_phase3_continue_agent3(branch_observations)
+
+            # Phase 3: Continue with Agent 1 (50 steps)
+            self.run_phase3_continue_agent1(branch_observations)
             
             # Save all position data
             self.save_position_data()
@@ -506,7 +502,7 @@ class GRPOVisualTester:
             self.env.close()
 
 
-def start_servers(num_services: int = 4):
+def start_servers(num_services: int = 2):
     """Start CARLA servers if needed."""
     logger.info(f"Starting {num_services} CARLA services...")
     
@@ -524,13 +520,50 @@ def start_servers(num_services: int = 4):
         if result.returncode == 0:
             logger.info(f"  Killed {process} processes")
     
-    # Also kill processes on specific ports
-    for port in range(8080, 8080 + num_services):
-        subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True)
-        subprocess.run(f"lsof -ti:{port} | xargs kill -9 2>/dev/null", shell=True, capture_output=True)
-    
-    for port in range(2000, 2000 + num_services * 2, 2):
-        subprocess.run(f"lsof -ti:{port} | xargs kill -9 2>/dev/null", shell=True, capture_output=True)
+    # Comprehensive port cleanup - clean all potential ports first
+    logger.info("Cleaning up ports comprehensively...")
+
+    # Clean API ports (8080-8083)
+    for port in range(8080, 8084):
+        try:
+            result = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
+            if result.returncode == 0:
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    if pid:
+                        subprocess.run(["kill", "-9", pid], capture_output=True)
+                        logger.info(f"  Killed process {pid} on port {port}")
+        except Exception as e:
+            logger.debug(f"  Error cleaning port {port}: {e}")
+
+    # Clean CARLA ports (2000-2012)
+    for port in range(2000, 2013):
+        try:
+            result = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
+            if result.returncode == 0:
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    if pid:
+                        subprocess.run(["kill", "-9", pid], capture_output=True)
+                        logger.info(f"  Killed process {pid} on port {port}")
+        except Exception as e:
+            logger.debug(f"  Error cleaning port {port}: {e}")
+
+    # Clean traffic manager ports (3000-3012)
+    for port in range(3000, 3013):
+        try:
+            result = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
+            if result.returncode == 0:
+                pids = result.stdout.strip().split('\n')
+                for pid in pids:
+                    if pid:
+                        subprocess.run(["kill", "-9", pid], capture_output=True)
+                        logger.info(f"  Killed process {pid} on port {port}")
+        except Exception as e:
+            logger.debug(f"  Error cleaning port {port}: {e}")
+
+    # Wait a moment for ports to be fully released
+    time.sleep(2)
     
     time.sleep(3)  # Wait for processes to fully terminate
     
@@ -563,7 +596,7 @@ def main():
     
     server_proc = None
     if args.start_servers:
-        server_proc = start_servers(4)
+        server_proc = start_servers(2)
     
     try:
         # Run test
