@@ -644,11 +644,7 @@ class GRPOCarlaEnv:
                 futures = []
                 for i in range(num_branches):
                     if i != self.primary_env_idx:  # Primary already has the state
-                        # First reset the environment to initialize simulation
-                        logger.info(f"Resetting branch {i} environment...")
-                        obs, info = self.envs[i].reset(options={"route_id": 0})
-
-                        # Then restore the snapshot
+                        # Just restore the snapshot - no need to reset first
                         logger.info(f"Restoring snapshot to branch {i}...")
                         future = self.executor.submit(
                             self.envs[i].restore_snapshot,

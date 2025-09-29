@@ -24,6 +24,9 @@ from io import BytesIO
 from typing import Dict, Optional
 import random
 import subprocess
+import carla
+import threading
+from datetime import datetime
 
 # Add parent directory to path
 import sys
@@ -86,7 +89,260 @@ class GRPOVisualTester:
         
         # Random steering history for agent 1
         self.random_steers = []
+
+        # Snapshot functionality from notebook
+        self.vehicles_state = None
+        self.watchdog_state = None
+        self.snapshot_dir = Path("snapshots")
+        self.snapshot_dir.mkdir(exist_ok=True)
         
+    def record_vehicles(self, world_obj, save_path=None, save_json=False):
+        """Record vehicle states from notebook implementation"""
+        actors = world_obj.get_actors()
+        vehicles = actors.filter("vehicle.*")
+
+        records = []
+        for v in vehicles:
+            tf = v.get_transform()
+            loc, rot = tf.location, tf.rotation
+            vel = v.get_velocity()
+            ang = v.get_angular_velocity()
+            acc = v.get_acceleration()
+            ctrl = v.get_control()
+
+            record = {
+                "id": v.id,
+                "type_id": v.type_id,
+                "x": loc.x,
+                "y": loc.y,
+                "z": loc.z,
+                "pitch": rot.pitch,
+                "yaw": rot.yaw,
+                "roll": rot.roll,
+                "vx": vel.x, "vy": vel.y, "vz": vel.z,
+                "wx": ang.x, "wy": ang.y, "wz": ang.z,
+                "ax": acc.x, "ay": acc.y, "az": acc.z,
+                "throttle": ctrl.throttle,
+                "steer": ctrl.steer,
+                "brake": ctrl.brake,
+                "hand_brake": ctrl.hand_brake,
+                "reverse": ctrl.reverse,
+                "gear": ctrl.gear,
+            }
+            records.append(record)
+
+        if save_path:
+            if save_json:
+                with open(save_path, "w") as f:
+                    json.dump(records, f, indent=4)
+                print(f"Saved {len(records)} vehicle records to {save_path} (JSON)")
+            else:
+                import csv
+                with open(save_path, mode="w", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=records[0].keys())
+                    writer.writeheader()
+                    writer.writerows(records)
+                print(f"Saved {len(records)} vehicle records to {save_path} (CSV)")
+
+        return records
+
+    def watchdog_save_state(self, watchdog_object):
+        """Save watchdog state from notebook implementation"""
+        record_dict = {
+            "timeout": watchdog_object._timeout,
+            "interval": watchdog_object._interval,
+            "failed": watchdog_object._failed,
+            "stopped": watchdog_object._watchdog_stopped,
+        }
+        return record_dict
+
+    def _existing_vehicle_ids(self, world):
+        """Get existing vehicle IDs from notebook implementation"""
+        return {v.id for v in world.get_actors().filter("vehicle.*")}
+
+    def stop_manager(self, manager):
+        """Stop manager from notebook implementation"""
+        manager._running = False
+
+        t = getattr(manager, "_scenario_thread", None)
+        if t and hasattr(t, "is_alive") and t.is_alive() and threading.current_thread() is not t:
+            t.join(timeout=2.0)
+        manager._scenario_thread = None
+
+        tt = getattr(manager, "_tick_thread", None)
+        if tt and hasattr(tt, "is_alive") and tt.is_alive() and threading.current_thread() is not tt:
+            tt.join(timeout=2.0)
+        manager._tick_thread = None
+
+    def reinit_inroute_and_blocked(self, tree):
+        """Re-initialise only InRouteTest and ActorBlockedTest from notebook implementation"""
+        try:
+            import py_trees.common
+            target = {"InRouteTest", "ActorBlockedTest"}
+            for n in tree.iterate():
+                if n.__class__.__name__ in target:
+                    try:
+                        n.terminate(py_trees.common.Status.INVALID)
+                        n.initialise()
+                    except Exception:
+                        pass
+        except ImportError:
+            logger.warning("py_trees not available, skipping tree reinitialization")
+
+    def start_manager_builder_only(self, manager):
+        """Start ONLY the builder loop from notebook implementation"""
+        manager._running = True
+        t = getattr(manager, "_scenario_thread", None)
+        if t is None or not (hasattr(t, "is_alive") and t.is_alive()):
+            manager._scenario_thread = threading.Thread(
+                target=manager.build_scenarios_loop,
+                args=(manager._debug_mode > 0,),
+                daemon=True
+            )
+            manager._scenario_thread.start()
+
+    def pause_restore_resume(self, client, world, manager, vehicles_state, mode="snapshot_strict",
+                            apply_controls=True, keep_sync=True):
+        """Pause, restore, and resume simulation from notebook implementation"""
+        # 1) Pause any manager activity
+        self.stop_manager(manager)
+
+        # 2) Ensure sync (paused) and remember previous settings
+        prev = world.get_settings()
+        changed = False
+        if not prev.synchronous_mode:
+            new = carla.WorldSettings()
+            new.no_rendering_mode = prev.no_rendering_mode
+            new.synchronous_mode = True
+            new.fixed_delta_seconds = prev.fixed_delta_seconds or 0.05
+            world.apply_settings(new)
+            changed = True
+
+        # 3) Build atomic batch
+        present = self._existing_vehicle_ids(world)
+
+        # --- MAIN RESTORE BATCH ---
+        batch = []
+
+        for rec in vehicles_state:
+            vid = int(rec["id"])
+            if vid not in present:
+                continue
+
+            tf = carla.Transform(
+                carla.Location(float(rec["x"]), float(rec["y"]), float(rec["z"])),
+                carla.Rotation(
+                    yaw=float(rec.get("yaw", 0.0)),
+                    pitch=float(rec.get("pitch", 0.0)),
+                    roll=float(rec.get("roll", 0.0)),
+                )
+            )
+
+            # Disable physics, set transform, re-enable physics
+            batch += [
+                carla.command.SetSimulatePhysics(vid, False),
+                carla.command.ApplyTransform(vid, tf),
+                carla.command.SetSimulatePhysics(vid, True),
+            ]
+
+        # Apply transforms first
+        client.apply_batch_sync(batch, True)
+        world.tick()
+
+        # Apply velocities using set_target_velocity directly (more reliable)
+        if mode == "snapshot_strict":
+            for rec in vehicles_state:
+                vid = int(rec["id"])
+                if vid not in present:
+                    continue
+
+                actor = world.get_actor(vid)
+                if actor:
+                    # Get saved velocities
+                    vx = abs(rec.get("vx", 0.0))
+                    vy = abs(rec.get("vy", 0.0))
+                    vz = abs(rec.get("vz", 0.0))
+                    wx = rec.get("wx", 0.0)
+                    wy = rec.get("wy", 0.0)
+                    wz = rec.get("wz", 0.0)
+
+                    # Debug print
+                    if vid == 3695:  # ego vehicle ID from notebook
+                        v_cur = actor.get_velocity()
+                        print(f"Ego before impulse: cur=({v_cur.x:.2f}, {v_cur.y:.2f}, {v_cur.z:.2f}), target=({vx:.2f}, {vy:.2f}, {vz:.2f})")
+
+                    # Force the exact velocity using enable_constant_velocity for one frame
+                    actor.enable_constant_velocity(carla.Vector3D(vx, vy, vz))
+                    actor.set_target_angular_velocity(carla.Vector3D(wx, wy, wz))
+
+        # Let constant velocity apply for one tick
+        world.tick()
+
+        # Disable constant velocity and apply controls
+        for rec in vehicles_state:
+            vid = int(rec["id"])
+            if vid not in present:
+                continue
+
+            actor = world.get_actor(vid)
+            if actor:
+                # Disable constant velocity
+                actor.disable_constant_velocity()
+
+                # Apply controls
+                if apply_controls:
+                    ctrl = carla.VehicleControl(
+                        throttle=float(rec.get("throttle", 0.0)),
+                        steer=float(rec.get("steer", 0.0)),
+                        brake=float(rec.get("brake", 0.0)),
+                        hand_brake=bool(rec.get("hand_brake", False)),
+                        reverse=bool(rec.get("reverse", False)),
+                        gear=int(rec.get("gear", 0)),
+                    )
+                    actor.apply_control(ctrl)
+
+        # Final tick
+        world.tick()
+
+        # Finally, reinit those two criteria only (prevents immediate FAILURE)
+        self.reinit_inroute_and_blocked(manager.scenario_tree)
+
+        if changed and not keep_sync:
+            world.apply_settings(prev)
+
+        self.start_manager_builder_only(manager)
+
+    def save_snapshot_to_disk(self, snapshot_id, vehicles_state, watchdog_state, observation):
+        """Save snapshot to disk following notebook approach"""
+        snapshot_file = self.snapshot_dir / f"{snapshot_id}.json"
+        try:
+            snapshot_data = {
+                "snapshot_id": snapshot_id,
+                "timestamp": datetime.now().isoformat(),
+                "vehicles_state": vehicles_state,
+                "watchdog_state": watchdog_state,
+                "observation": observation
+            }
+            with open(snapshot_file, 'w') as f:
+                json.dump(snapshot_data, f, indent=2)
+            logger.info(f"Snapshot saved to disk: {snapshot_file}")
+            return snapshot_file
+        except Exception as e:
+            logger.error(f"Failed to save snapshot to disk: {e}")
+            return None
+
+    def restore_snapshot_from_disk(self, snapshot_id):
+        """Restore snapshot from disk following notebook approach"""
+        snapshot_file = self.snapshot_dir / f"{snapshot_id}.json"
+        try:
+            with open(snapshot_file, 'r') as f:
+                snapshot_data = json.load(f)
+            logger.info(f"Snapshot loaded from disk: {snapshot_file}")
+            return snapshot_data
+        except Exception as e:
+            logger.error(f"Failed to load snapshot from disk: {e}")
+            return None
+
     def extract_position(self, observation: Dict) -> Optional[Dict[str, float]]:
         """Extract vehicle position from observation."""
         try:
@@ -213,10 +469,16 @@ class GRPOVisualTester:
         logger.info("PHASE 1: Single Mode Exploration (90 steps)")
         logger.info("="*60)
 
-        # Reset environment for Phase 1 - this will reuse the pre-initialized scenario
-        logger.info("Resetting environment for Phase 1...")
-        obs, info = self.env.reset(options={"route_id": 0})
-        logger.info(f"Reset complete. Mode: {self.env.current_mode}, is_branching: {self.env.is_branching}")
+        # Check if environment is already initialized (from pre-initialization)
+        if hasattr(self.env.envs[0], 'last_observation') and self.env.envs[0].last_observation is not None:
+            logger.info("Using pre-initialized environment state")
+            obs = self.env.envs[0].last_observation
+            info = {}
+            logger.info(f"Using pre-initialized state. Mode: {self.env.current_mode}, is_branching: {self.env.is_branching}")
+        else:
+            logger.info("Resetting environment for Phase 1...")
+            obs, info = self.env.reset(options={"route_id": 0})
+            logger.info(f"Reset complete. Mode: {self.env.current_mode}, is_branching: {self.env.is_branching}")
 
         # Save initial image
         self.extract_and_save_image(obs, 0, "Phase 1 - Initial")
@@ -271,9 +533,28 @@ class GRPOVisualTester:
         logger.info("PHASE 2: Branching Mode (4 agents, 20 steps)")
         logger.info("="*60)
         
-        # Save snapshot before branching
+        # Save snapshot before branching using enhanced functionality
         logger.info("Saving snapshot for branching...")
         snapshot_id = self.env.save_snapshot()
+
+        # Get the underlying CARLA world and manager for enhanced snapshot
+        if hasattr(self.env.envs[0], 'client') and hasattr(self.env.envs[0], 'world'):
+            try:
+                # Record vehicle states using notebook approach
+                self.vehicles_state = self.record_vehicles(self.env.envs[0].world)
+                self.watchdog_state = self.watchdog_save_state(self.env.envs[0].manager._watchdog)
+
+                # Save snapshot to disk with detailed data
+                snapshot_file = self.save_snapshot_to_disk(
+                    snapshot_id,
+                    self.vehicles_state,
+                    self.watchdog_state,
+                    last_obs
+                )
+                logger.info(f"Enhanced snapshot saved: {snapshot_file}")
+            except Exception as e:
+                logger.warning(f"Could not enhance snapshot: {e}")
+
         logger.info(f"Snapshot saved: {snapshot_id}")
         
         # Enable branching with 2 branches
@@ -319,8 +600,8 @@ class GRPOVisualTester:
                     if position:
                         self.position_history[f"branch{i}"].append(position)
                     
-                    # Save images every 10 steps
-                    if (step - 91) % 10 == 0 or step == 91 or step == 110:
+                    # Save images every 3 frames for more detailed analysis
+                    if (step - 91) % 3 == 0 or step == 91 or step == 110:
                         self.extract_and_save_image(
                             observations[i],
                             step,
@@ -332,8 +613,8 @@ class GRPOVisualTester:
                     if terminateds[i] or truncateds[i]:
                         logger.info(f"Agent {i} terminated at step {step}")
                 
-                # Log progress every 10 steps
-                if (step - 91) % 10 == 0:
+                # Log progress every 3 frames for more detailed analysis
+                if (step - 91) % 3 == 0:
                     logger.info(f"Step {step}:")
                     for i in range(2):
                         pos = self.extract_position(observations[i])
@@ -466,13 +747,13 @@ class GRPOVisualTester:
         logger.info(f"Max branches: {self.env.max_branches}")
         
         try:
-            # Skip pre-initialization to avoid double reset issue
-            logger.info("Skipping pre-initialization to avoid double reset...")
-            # init_status = self.env.initialize_all_services(route_id=0)
-            # if init_status.ready:
-            #     logger.info("✓ All services pre-initialized successfully")
-            # else:
-            #     logger.warning(f"⚠ Service pre-initialization issues: {init_status.message}")
+            # Pre-initialize all services for fast branching
+            logger.info("Pre-initializing all services for fast branching...")
+            init_status = self.env.initialize_all_services(route_id=0)
+            if init_status.ready:
+                logger.info("✓ All services pre-initialized successfully")
+            else:
+                logger.warning(f"⚠ Service pre-initialization issues: {init_status.message}")
 
             # Phase 1: Single exploration (90 steps)
             last_obs = self.run_phase1_single_exploration()

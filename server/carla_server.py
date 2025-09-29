@@ -1707,7 +1707,24 @@ async def save_snapshot(request: SnapshotRequest):
         
         # Store snapshot
         sim_state.snapshots[snapshot_id] = snapshot
-        
+
+        # Save to disk for persistence (following notebook approach)
+        snapshot_file = sim_state.snapshot_dir / f"{snapshot_id}.json"
+        try:
+            snapshot_data = {
+                "snapshot_id": snapshot_id,
+                "timestamp": snapshot.timestamp,
+                "vehicles_state": vehicles_state,
+                "watchdog_state": watchdog_state,
+                "step_count": snapshot.step_count,
+                "observation": obs
+            }
+            with open(snapshot_file, 'w') as f:
+                json.dump(snapshot_data, f, indent=2)
+            logger.info(f"Snapshot saved to disk: {snapshot_file}")
+        except Exception as e:
+            logger.error(f"Failed to save snapshot to disk: {e}")
+
         logger.info(f"Snapshot saved: {snapshot_id} with {len(vehicles_state)} vehicles")
         
         return {
