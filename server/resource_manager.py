@@ -54,11 +54,11 @@ class ResourceManager:
         if config_path and os.path.exists(config_path):
             with open(config_path, 'r') as f:
                 return yaml.safe_load(f)
-        
-        # Default configuration
+
+        # Default configuration matching config.yaml structure
         return {
             'gpu': {
-                'strategy': 'same',
+                'strategy': 'distributed',
                 'default_gpu': 0,
                 'available_gpus': [0, 1]
             },

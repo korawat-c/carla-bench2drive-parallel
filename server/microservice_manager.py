@@ -436,15 +436,27 @@ class MicroserviceManager:
         if config_file and Path(config_file).exists():
             with open(config_file, 'r') as f:
                 return yaml.safe_load(f)
-        
-        # Default configuration
+
+        # Default configuration matching config.yaml structure
         return {
-            "base_carla_port": 2000,
-            "base_api_port": 8080,
-            "num_services": 2,
-            "gpus": [0],  # Available GPUs
-            "auto_restart": True,
-            "health_check_interval": 300  # 5 minutes for CARLA operations
+            "ports": {
+                "carla_base": 2000,
+                "api_base": 8080,
+                "streaming_base": 3000,
+                "api_offset": 1,
+                "carla_offset": 4,
+                "streaming_offset": 10
+            },
+            "services": {
+                "num_services": 2,
+                "auto_restart": True,
+                "health_check_interval": 30,
+                "health_check_timeout": 5,
+                "max_restart_attempts": 3
+            },
+            "gpu": {
+                "available_gpus": [0]
+            }
         }
     
     def spawn_service(self, service_id: Optional[int] = None) -> Bench2DriveService:
@@ -467,14 +479,14 @@ class MicroserviceManager:
             
             logger.info(f"[Resource Manager] Allocated resources for service {service_id}")
         else:
-            # Fallback to original logic
-            carla_port = self.config["base_carla_port"] + (service_id * self.port_spacing)
-            api_port = self.config["base_api_port"] + service_id
-            
+            # Fallback to config-based logic
+            carla_port = self.config["ports"]["carla_base"] + (service_id * self.config["ports"]["carla_offset"])
+            api_port = self.config["ports"]["api_base"] + (service_id * self.config["ports"]["api_offset"])
+
             # GPU assignment (round-robin)
-            available_gpus = self.config.get("gpus", [0])
+            available_gpus = self.config["gpu"]["available_gpus"]
             gpu_id = available_gpus[service_id % len(available_gpus)]
-            
+
             # Create service configuration
             config = ServiceConfig(
                 service_id=service_id,
@@ -482,8 +494,8 @@ class MicroserviceManager:
                 carla_port=carla_port,
                 gpu_id=gpu_id
             )
-            
-            logger.info(f"[Fallback] Using hardcoded resource allocation")
+
+            logger.info(f"[Config-based] Allocated resources for service {service_id}")
         
         # Create and start service
         service = Bench2DriveService(config)
@@ -552,9 +564,9 @@ class MicroserviceManager:
     def _monitor_services(self):
         """Background monitoring thread"""
         while self.running:
-            time.sleep(self.config.get("health_check_interval", 30))
-            
-            if not self.config.get("auto_restart", True):
+            time.sleep(self.config["services"].get("health_check_interval", 30))
+
+            if not self.config["services"].get("auto_restart", True):
                 continue
             
             # Auto-restart dead services
@@ -570,8 +582,8 @@ class MicroserviceManager:
         self.running = True
 
         # Spawn initial services in parallel for faster startup
-        num_services = self.config.get("num_services", 2)
-        startup_delay = self.config.get("startup_delay", 0)  # Delay between service starts
+        num_services = self.config["services"].get("num_services", 2)
+        startup_delay = self.config["services"].get("startup_delay", 0)  # Delay between service starts
         logger.info(f"Starting {num_services} services in parallel...")
 
         # For true parallel startup, skip delays when startup_delay is 0
@@ -642,10 +654,10 @@ def main():
     manager = MicroserviceManager(args.config)
     
     if args.num_services:
-        manager.config["num_services"] = args.num_services
-    
+        manager.config["services"]["num_services"] = args.num_services
+
     if args.startup_delay:
-        manager.config["startup_delay"] = args.startup_delay
+        manager.config["services"]["startup_delay"] = args.startup_delay
     
     manager.start()
     

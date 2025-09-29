@@ -9,6 +9,7 @@ import time
 import subprocess
 import requests
 import psutil
+import yaml
 from pathlib import Path
 from datetime import datetime
 
@@ -18,19 +19,43 @@ class TerminalUI:
         self.selected = 0
         self.manager_process = None
         self.message = ""
-        
+        self.config = self._load_config()
+
+    def _load_config(self):
+        """Load configuration from config.yaml"""
+        config_path = Path(__file__).parent.parent / "configs" / "config.yaml"
+        try:
+            with open(config_path, 'r') as f:
+                return yaml.safe_load(f)
+        except:
+            # Default config if file not found
+            return {
+                'ports': {
+                    'api_base': 8080,
+                    'carla_base': 2000,
+                    'carla_offset': 4
+                },
+                'gpu': {
+                    'available_gpus': [0, 1]
+                }
+            }
+
     def get_service_status(self):
         """Get status of all services"""
         services = []
-        for i in range(4):
-            api_port = 8080 + i
-            carla_port = 2000 + (i * 4)
-            
+        num_services = self.config.get('services', {}).get('num_services', 4)
+
+        for i in range(num_services):
+            api_port = self.config['ports']['api_base'] + (i * self.config['ports']['api_offset'])
+            carla_port = self.config['ports']['carla_base'] + (i * self.config['ports']['carla_offset'])
+            available_gpus = self.config['gpu']['available_gpus']
+            gpu_id = available_gpus[i % len(available_gpus)]
+
             service = {
                 'id': i,
                 'api_port': api_port,
                 'carla_port': carla_port,
-                'gpu_id': i % 2,
+                'gpu_id': gpu_id,
                 'healthy': False,
                 'status': 'stopped'
             }
