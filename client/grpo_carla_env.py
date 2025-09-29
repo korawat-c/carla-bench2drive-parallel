@@ -315,6 +315,18 @@ class GRPOCarlaEnv:
         obs, info = self.envs[self.primary_env_idx].reset(seed=seed, options=options)
         
         return obs, info
+
+    def get_current_observation(self):
+        """
+        Get current observation without resetting the environment.
+
+        Returns:
+            Current observation from the primary environment
+        """
+        if not hasattr(self.envs[self.primary_env_idx], 'get_current_observation'):
+            raise AttributeError("Underlying environment does not support get_current_observation")
+
+        return self.envs[self.primary_env_idx].get_current_observation()
     
     def single_step(
         self, 

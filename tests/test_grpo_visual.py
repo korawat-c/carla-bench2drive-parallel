@@ -212,18 +212,18 @@ class GRPOVisualTester:
         logger.info("\n" + "="*60)
         logger.info("PHASE 1: Single Mode Exploration (90 steps)")
         logger.info("="*60)
-        
-        # Reset environment
-        logger.info("Resetting environment...")
+
+        # Reset environment for Phase 1 - this will reuse the pre-initialized scenario
+        logger.info("Resetting environment for Phase 1...")
         obs, info = self.env.reset(options={"route_id": 0})
         logger.info(f"Reset complete. Mode: {self.env.current_mode}, is_branching: {self.env.is_branching}")
-        
+
         # Save initial image
         self.extract_and_save_image(obs, 0, "Phase 1 - Initial")
         initial_pos = self.extract_position(obs)
         if initial_pos:
             logger.info(f"Initial position: X={initial_pos['x']:.1f}, Y={initial_pos['y']:.1f}")
-        
+
         # Run 90 steps with forward action
         for step in range(1, 91):
             # Simple forward action
@@ -466,13 +466,13 @@ class GRPOVisualTester:
         logger.info(f"Max branches: {self.env.max_branches}")
         
         try:
-            # Pre-initialize all services for fast branching
-            logger.info("Pre-initializing all services for fast branching...")
-            init_status = self.env.initialize_all_services(route_id=0)
-            if init_status.ready:
-                logger.info("✓ All services pre-initialized successfully")
-            else:
-                logger.warning(f"⚠ Service pre-initialization issues: {init_status.message}")
+            # Skip pre-initialization to avoid double reset issue
+            logger.info("Skipping pre-initialization to avoid double reset...")
+            # init_status = self.env.initialize_all_services(route_id=0)
+            # if init_status.ready:
+            #     logger.info("✓ All services pre-initialized successfully")
+            # else:
+            #     logger.warning(f"⚠ Service pre-initialization issues: {init_status.message}")
 
             # Phase 1: Single exploration (90 steps)
             last_obs = self.run_phase1_single_exploration()

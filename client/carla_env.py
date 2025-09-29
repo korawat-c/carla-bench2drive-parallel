@@ -190,7 +190,19 @@ class CarlaEnv(gym.Env):
             except Exception as e:
                 logger.error(f"Failed to reset environment: {e}")
                 raise RuntimeError(f"Failed to reset CARLA environment: {e}")
-    
+
+    def get_current_observation(self) -> Dict[str, Any]:
+        """
+        Get current observation without resetting the environment.
+
+        Returns:
+            Current observation from the environment
+        """
+        if self.last_observation is None:
+            raise RuntimeError("No observation available. Call reset() first.")
+
+        return self.last_observation
+
     def step(self, action: np.ndarray) -> Tuple[Dict[str, Any], float, bool, bool, Dict[str, Any]]:
         """
         Execute action in environment.
