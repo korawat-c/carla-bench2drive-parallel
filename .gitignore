@@ -3,6 +3,8 @@ Orion/
 simlingo/
 carla0915/
 Bench2Drive/
+.bmad-core/
+.claude/
 
 #
 ## Python bytecode and cache files
@@ -13,6 +15,8 @@ __pycache__/
 .Python
 *.so
 *.log
+
+
 
 ## Virtual environments
 venv/
