@@ -304,8 +304,10 @@ class CarlaEnv(gym.Env):
             snapshot_id: Unique identifier for the snapshot
         """
         try:
+            # Send empty JSON body as server expects SnapshotRequest
             response = requests.post(
                 f"{self.server_url}/snapshot",
+                json={},  # Empty dict will use default snapshot_id on server
                 timeout=self.timeout
             )
             response.raise_for_status()

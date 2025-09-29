@@ -51,6 +51,10 @@ except ImportError:
 
 ### Never start this file. called it via the microservice_manager.py
 
+# Shared snapshots directory for all services
+SNAPSHOTS_DIR = Path("/mnt3/Documents/AD_Framework/bench2drive-gymnasium/bench2drive_microservices/snapshots")
+SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+
 # Setup comprehensive logging
 def setup_logging(api_port, log_to_file=True, log_to_console=True):
     """Setup detailed logging to both file and console"""
@@ -1694,10 +1698,26 @@ async def save_snapshot(request: SnapshotRequest):
         snapshot.timestamp = datetime.now().isoformat()
         snapshot.observation = obs
         
-        # Store snapshot
+        # Store snapshot to shared filesystem
+        snapshot_file = SNAPSHOTS_DIR / f"{snapshot_id}.json"
+        snapshot_data = {
+            "snapshot_id": snapshot_id,
+            "vehicles_state": vehicles_state,
+            "watchdog_state": watchdog_state,
+            "step_count": snapshot.step_count,
+            "timestamp": snapshot.timestamp,
+            "observation": obs if isinstance(obs, dict) else {"data": obs},
+            "server_id": sim_state.server_id
+        }
+        
+        # Save to JSON file
+        with open(snapshot_file, "w") as f:
+            json.dump(snapshot_data, f, indent=2, default=str)
+        
+        # Also keep in memory for backward compatibility
         sim_state.snapshots[snapshot_id] = snapshot
         
-        logger.info(f"Snapshot saved: {snapshot_id} with {len(vehicles_state)} vehicles")
+        logger.info(f"Snapshot saved to {snapshot_file}: {snapshot_id} with {len(vehicles_state)} vehicles")
         
         return {
             "status": "success",
@@ -1800,10 +1820,29 @@ async def restore_snapshot(request: RestoreRequest):
         if sim_state.leaderboard_evaluator is None:
             raise HTTPException(status_code=400, detail="No active simulation")
         
-        if snapshot_id not in sim_state.snapshots:
-            raise HTTPException(status_code=404, detail=f"Snapshot {snapshot_id} not found")
+        # Try to load from filesystem first
+        snapshot_file = SNAPSHOTS_DIR / f"{snapshot_id}.json"
         
-        snapshot = sim_state.snapshots[snapshot_id]
+        if snapshot_file.exists():
+            # Load from filesystem
+            with open(snapshot_file, "r") as f:
+                snapshot_data = json.load(f)
+            
+            # Create snapshot object from loaded data
+            snapshot = WorldSnapshot(snapshot_id=snapshot_id)
+            snapshot.vehicles_state = snapshot_data.get("vehicles_state", [])
+            snapshot.watchdog_state = snapshot_data.get("watchdog_state", None)
+            snapshot.step_count = snapshot_data.get("step_count", 0)
+            snapshot.timestamp = snapshot_data.get("timestamp", "")
+            snapshot.observation = snapshot_data.get("observation", {})
+            
+            logger.info(f"Loaded snapshot from filesystem: {snapshot_file}")
+        elif snapshot_id in sim_state.snapshots:
+            # Fallback to memory if not in filesystem
+            snapshot = sim_state.snapshots[snapshot_id]
+            logger.info(f"Loaded snapshot from memory: {snapshot_id}")
+        else:
+            raise HTTPException(status_code=404, detail=f"Snapshot {snapshot_id} not found in filesystem or memory")
         
         client = sim_state.leaderboard_evaluator.client
         world = sim_state.leaderboard_evaluator.world
@@ -2006,6 +2045,32 @@ async def restore_snapshot(request: RestoreRequest):
 # Note: Removed old restore2-5 and notebook versions (duplicate code)
 
 # Removed duplicate restore functions (restore2-5, snapshot_notebook, restore_notebook)
+
+@app.get("/snapshots")
+async def list_snapshots():
+    """List all available snapshots from filesystem and memory"""
+    try:
+        # Get snapshots from filesystem
+        filesystem_snapshots = []
+        for snapshot_file in SNAPSHOTS_DIR.glob("*.json"):
+            filesystem_snapshots.append(snapshot_file.stem)
+        
+        # Get snapshots from memory
+        memory_snapshots = list(sim_state.snapshots.keys())
+        
+        # Combine and deduplicate
+        all_snapshots = list(set(filesystem_snapshots + memory_snapshots))
+        
+        return {
+            "status": "success",
+            "snapshots": all_snapshots,
+            "filesystem": filesystem_snapshots,
+            "memory": memory_snapshots,
+            "total": len(all_snapshots)
+        }
+    except Exception as e:
+        logger.error(f"Error listing snapshots: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/close")
 async def close_environment():

@@ -1,13 +1,475 @@
-2025-09-03 21:52:25 [INFO] carla_server - setup_bench2drive_environment:131 - Bench2Drive environment setup complete
-2025-09-03 21:52:25 [INFO] carla_server - <module>:153 - All CARLA and Bench2Drive imports successful
-Traceback (most recent call last):
-  File "server/carla_server.py", line 162, in <module>
-    from api_agent import APIAgent, get_entry_point
-ModuleNotFoundError: No module named 'api_agent'
+2025-09-04 23:49:55 [INFO] carla_server - setup_bench2drive_environment:154 - Bench2Drive environment setup complete
+2025-09-04 23:49:55 [INFO] carla_server - <module>:176 - All CARLA and Bench2Drive imports successful
+2025-09-04 23:49:55 [INFO] carla_server - __init__:813 - Snapshot directory created/verified at: /mnt3/Documents/AD_Framework/bench2drive-gymnasium/bench2drive_microservices/snapshots
+2025-09-04 23:49:55 [INFO] carla_server - <module>:2237 - Starting Bench2Drive CARLA server service-0 on port 8080...
+server/carla_server.py:1063: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
 
-During handling of the above exception, another exception occurred:
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+server/carla_server.py:1072: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
 
-Traceback (most recent call last):
-  File "server/carla_server.py", line 168, in <module>
-    from api_agent import APIAgent, get_entry_point
-ModuleNotFoundError: No module named 'api_agent'
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("shutdown")
+INFO:     Started server process [809548]
+INFO:     Waiting for application startup.
+2025-09-04 23:49:55 [INFO] carla_server - startup_event:1066 - ============================================================
+2025-09-04 23:49:55 [INFO] carla_server - startup_event:1067 - Bench2Drive CARLA Server [service-0] starting...
+2025-09-04 23:49:55 [INFO] carla_server - startup_event:1068 - API Port: 8080
+2025-09-04 23:49:55 [INFO] carla_server - startup_event:1069 - CARLA Port: 2000
+2025-09-04 23:49:55 [INFO] carla_server - startup_event:1070 - ============================================================
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8080 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59800 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44272 - "GET /health HTTP/1.1" 200 OK
+2025-09-04 23:50:09 [INFO] carla_server - reset_environment:1333 - Reset endpoint called with route_id=0
+2025-09-04 23:50:09 [INFO] carla_server - reset_environment:1348 - Setting up new LeaderboardEvaluator
+2025-09-04 23:50:09 [INFO] carla_server - reset_environment:1393 - Creating LeaderboardEvaluator instance
+2025-09-04 23:50:09 [INFO] carla_server - _setup_simulation:242 - Attempting to setup CARLA on port 2000
+2025-09-04 23:50:11 [INFO] carla_server - _setup_simulation:256 - No existing CARLA on port 2000, will start new instance: time-out of 2000ms while waiting for the simulator, make sure the simulator is ready and connected to localhost:2000
+2025-09-04 23:50:11 [INFO] carla_server - _setup_simulation:263 - Port 2000 is free, using it
+2025-09-04 23:50:11 [INFO] resource_manager - allocate_resources:114 - Allocated resources for service 0:
+2025-09-04 23:50:11 [INFO] resource_manager - allocate_resources:115 -   GPU: 0
+2025-09-04 23:50:11 [INFO] resource_manager - allocate_resources:116 -   API Port: 8080
+2025-09-04 23:50:11 [INFO] resource_manager - allocate_resources:117 -   CARLA Port: 2000
+2025-09-04 23:50:11 [INFO] resource_manager - allocate_resources:118 -   Streaming Port: 3000
+2025-09-04 23:50:11 [INFO] resource_manager - allocate_resources:119 -   TM Port: 3000
+2025-09-04 23:50:11 [INFO] carla_server - _setup_simulation:289 - [Resource Manager] Starting CARLA with GPU 0, RPC port 2000, streaming port 3000
+4.26.2-0+++UE4+Release-4.26 522 0
+Disabling core dumps.
+2025-09-04 23:50:16 [INFO] carla_server - _setup_simulation:320 - Loading world...
+2025-09-04 23:50:21 [INFO] carla_server - _setup_simulation:334 - World loaded successfully, attempts=0
+2025-09-04 23:50:21 [INFO] carla_server - _setup_simulation:350 - Traffic manager initialized successfully, attempts=0
+2025-09-04 23:50:21 [INFO] carla_server - reset_environment:1395 - LeaderboardEvaluator created successfully
+2025-09-04 23:50:21 [INFO] carla_server - reset_environment:1401 - World initialized from client
+2025-09-04 23:50:21 [INFO] carla_server - reset_environment:1452 - Calling my_load_scenario...
+2025-09-04 23:50:21 [INFO] carla_server - my_load_scenario:438 - my_load_scenario: Starting function
+2025-09-04 23:50:21 [INFO] carla_server - my_load_scenario:443 - ========= Preparing RouteScenario_1790 (repetition 0) =========
+2025-09-04 23:50:21 [INFO] carla_server - my_load_scenario:455 - Loading the world
+2025-09-04 23:50:21 [INFO] carla_server - my_load_scenario:459 - my_load_scenario: Calling _load_and_wait_for_world for town Town12
+2025-09-04 23:50:21 [INFO] carla_server - _load_and_wait_for_world:408 - Current map: Town10HD_Opt, loading new town: Town12
+2025-09-04 23:50:56 [INFO] carla_server - _load_and_wait_for_world:411 - Town Town12 loaded successfully
+2025-09-04 23:51:00 [INFO] carla_server - my_load_scenario:461 - my_load_scenario: Creating RouteScenario
+2025-09-04 23:51:24 [INFO] carla_server - my_load_scenario:463 - my_load_scenario: Setting scenario in statistics_manager
+2025-09-04 23:51:24 [INFO] carla_server - reset_environment:1459 - my_load_scenario returned: (False, 'RouteScenario_1790_rep0_Town12_HazardAtSideLane_1_8_09_04_23_50_21', 'Started', '')
+2025-09-04 23:51:24 [INFO] carla_server - my_load_agent:505 - Setting up the agent
+2025-09-04 23:51:24 [INFO] carla_server - my_load_agent:522 - APIAgent detected - using dummy watchdog for setup
+[APIAgent] Initialized - waiting for actions from API
+[APIAgent] Global plan set with 120 waypoints
+[APIAgent] Setup complete with config: +RouteScenario_1790_rep0_Town12_HazardAtSideLane_1_8_09_04_23_50_21_api_agent
+[APIAgent] sensors() called - defining sensor suite
+2025-09-04 23:51:24 [INFO] carla_server - my_load_route_scenario:580 - Running the route
+[APIAgent] sensors() called - defining sensor suite
+2025-09-04 23:51:26 [INFO] root - __init__:25 - WDT: Started
+2025-09-04 23:51:26 [INFO] carla_server - my_run_scenario_setup:618 - APIAgent detected - using dummy agent watchdog (controlled via REST API)
+2025-09-04 23:51:26 [INFO] carla_server - reset_environment:1518 - Ticking once to get initial sensor data...
+=== [Agent] -- Wallclock = 2025-09-04 23:51:26.619 -- System time = 0.000 -- Game time = 0.050 -- Ratio = 0.000x
+[APIAgent] Step 0 - run_step called
+[APIAgent] input_data type: <class 'dict'>
+[APIAgent] input_data keys: ['GPS', 'IMU', 'Center', 'Left', 'Right', 'SPEED']
+[APIAgent] Center camera type: <class 'tuple'>
+[APIAgent] Center tuple length: 2
+[APIAgent] Center data shape: (512, 1024, 4)
+[APIAgent] Left camera type: <class 'tuple'>
+[APIAgent] Left tuple length: 2
+[APIAgent] Left data shape: (512, 1024, 4)
+[APIAgent] Right camera type: <class 'tuple'>
+[APIAgent] Right tuple length: 2
+[APIAgent] Right data shape: (512, 1024, 4)
+[APIAgent] SPEED data type: <class 'tuple'>
+[APIAgent] SPEED data: {'speed': 2.8403161580028646e-05}
+[APIAgent] Step 0: Got sensor data for ['GPS', 'IMU', 'Center', 'Left', 'Right', 'SPEED']
+INFO:     127.0.0.1:44288 - "POST /reset HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52582 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55356 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55366 - "GET /health HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:27.217 -- System time = 0.598 -- Game time = 0.100 -- Ratio = 0.167x
+[APIAgent] Step 1 - run_step called
+[APIAgent] input_data type: <class 'dict'>
+[APIAgent] input_data keys: ['GPS', 'IMU', 'SPEED', 'Center', 'Left', 'Right']
+[APIAgent] Center camera type: <class 'tuple'>
+[APIAgent] Center tuple length: 2
+[APIAgent] Center data shape: (512, 1024, 4)
+[APIAgent] Left camera type: <class 'tuple'>
+[APIAgent] Left tuple length: 2
+[APIAgent] Left data shape: (512, 1024, 4)
+[APIAgent] Right camera type: <class 'tuple'>
+[APIAgent] Right tuple length: 2
+[APIAgent] Right data shape: (512, 1024, 4)
+[APIAgent] SPEED data type: <class 'tuple'>
+[APIAgent] SPEED data: {'speed': 1.8442678992381275e-05}
+INFO:     127.0.0.1:40006 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:27.620 -- System time = 1.001 -- Game time = 0.150 -- Ratio = 0.150x
+[APIAgent] Step 2 - run_step called
+[APIAgent] input_data type: <class 'dict'>
+[APIAgent] input_data keys: ['GPS', 'IMU', 'SPEED', 'Center', 'Left', 'Right']
+[APIAgent] Center camera type: <class 'tuple'>
+[APIAgent] Center tuple length: 2
+[APIAgent] Center data shape: (512, 1024, 4)
+[APIAgent] Left camera type: <class 'tuple'>
+[APIAgent] Left tuple length: 2
+[APIAgent] Left data shape: (512, 1024, 4)
+[APIAgent] Right camera type: <class 'tuple'>
+[APIAgent] Right tuple length: 2
+[APIAgent] Right data shape: (512, 1024, 4)
+[APIAgent] SPEED data type: <class 'tuple'>
+[APIAgent] SPEED data: {'speed': 1.948840823257924e-05}
+INFO:     127.0.0.1:40012 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:28.120 -- System time = 1.500 -- Game time = 0.200 -- Ratio = 0.133x
+INFO:     127.0.0.1:40018 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:28.449 -- System time = 1.829 -- Game time = 0.250 -- Ratio = 0.137x
+INFO:     127.0.0.1:40032 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:28.780 -- System time = 2.161 -- Game time = 0.300 -- Ratio = 0.139x
+INFO:     127.0.0.1:40046 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:29.105 -- System time = 2.486 -- Game time = 0.350 -- Ratio = 0.141x
+INFO:     127.0.0.1:40062 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:29.431 -- System time = 2.812 -- Game time = 0.400 -- Ratio = 0.142x
+INFO:     127.0.0.1:40076 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:29.769 -- System time = 3.150 -- Game time = 0.450 -- Ratio = 0.143x
+INFO:     127.0.0.1:40082 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:30.103 -- System time = 3.484 -- Game time = 0.500 -- Ratio = 0.144x
+INFO:     127.0.0.1:40098 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:30.440 -- System time = 3.821 -- Game time = 0.550 -- Ratio = 0.144x
+INFO:     127.0.0.1:40114 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:30.770 -- System time = 4.151 -- Game time = 0.600 -- Ratio = 0.145x
+INFO:     127.0.0.1:40118 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:31.117 -- System time = 4.498 -- Game time = 0.650 -- Ratio = 0.145x
+INFO:     127.0.0.1:40134 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:31.436 -- System time = 4.817 -- Game time = 0.700 -- Ratio = 0.145x
+INFO:     127.0.0.1:40136 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:31.799 -- System time = 5.180 -- Game time = 0.750 -- Ratio = 0.145x
+INFO:     127.0.0.1:40142 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:32.128 -- System time = 5.509 -- Game time = 0.800 -- Ratio = 0.145x
+INFO:     127.0.0.1:40144 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:32.469 -- System time = 5.849 -- Game time = 0.850 -- Ratio = 0.145x
+INFO:     127.0.0.1:40154 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:32.820 -- System time = 6.201 -- Game time = 0.900 -- Ratio = 0.145x
+INFO:     127.0.0.1:40156 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:33.247 -- System time = 6.628 -- Game time = 0.950 -- Ratio = 0.143x
+INFO:     127.0.0.1:40166 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:33.561 -- System time = 6.942 -- Game time = 1.000 -- Ratio = 0.144x
+INFO:     127.0.0.1:40170 - "POST /step HTTP/1.1" 200 OK
+[APIAgent] Received action: {'throttle': 1.0, 'brake': 0.0, 'steer': 0.0}
+=== [Agent] -- Wallclock = 2025-09-04 23:51:33.907 -- System time = 7.287 -- Game time = 1.050 -- Ratio = 0.144x
+INFO:     127.0.0.1:40182 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:34.274 -- System time = 7.655 -- Game time = 1.100 -- Ratio = 0.144x
+INFO:     127.0.0.1:40198 - "POST /step HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40200 - "GET /health HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:34.605 -- System time = 7.986 -- Game time = 1.150 -- Ratio = 0.144x
+INFO:     127.0.0.1:40210 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:34.947 -- System time = 8.327 -- Game time = 1.200 -- Ratio = 0.144x
+INFO:     127.0.0.1:40222 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:35.267 -- System time = 8.648 -- Game time = 1.250 -- Ratio = 0.145x
+INFO:     127.0.0.1:40224 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:35.594 -- System time = 8.974 -- Game time = 1.300 -- Ratio = 0.145x
+INFO:     127.0.0.1:40228 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:35.923 -- System time = 9.304 -- Game time = 1.350 -- Ratio = 0.145x
+INFO:     127.0.0.1:40238 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:36.247 -- System time = 9.628 -- Game time = 1.400 -- Ratio = 0.145x
+INFO:     127.0.0.1:40248 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:36.575 -- System time = 9.956 -- Game time = 1.450 -- Ratio = 0.146x
+INFO:     127.0.0.1:40252 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:36.914 -- System time = 10.295 -- Game time = 1.500 -- Ratio = 0.146x
+INFO:     127.0.0.1:52234 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:37.241 -- System time = 10.622 -- Game time = 1.550 -- Ratio = 0.146x
+INFO:     127.0.0.1:52238 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:37.571 -- System time = 10.952 -- Game time = 1.600 -- Ratio = 0.146x
+INFO:     127.0.0.1:52248 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:37.905 -- System time = 11.286 -- Game time = 1.650 -- Ratio = 0.146x
+INFO:     127.0.0.1:52252 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:38.237 -- System time = 11.618 -- Game time = 1.700 -- Ratio = 0.146x
+INFO:     127.0.0.1:52262 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:38.587 -- System time = 11.967 -- Game time = 1.750 -- Ratio = 0.146x
+INFO:     127.0.0.1:52274 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:39.009 -- System time = 12.390 -- Game time = 1.800 -- Ratio = 0.145x
+INFO:     127.0.0.1:52286 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:39.358 -- System time = 12.739 -- Game time = 1.850 -- Ratio = 0.145x
+INFO:     127.0.0.1:52294 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:39.690 -- System time = 13.071 -- Game time = 1.900 -- Ratio = 0.145x
+INFO:     127.0.0.1:52296 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:40.018 -- System time = 13.399 -- Game time = 1.950 -- Ratio = 0.146x
+INFO:     127.0.0.1:52300 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:40.349 -- System time = 13.729 -- Game time = 2.000 -- Ratio = 0.146x
+INFO:     127.0.0.1:52312 - "POST /step HTTP/1.1" 200 OK
+[APIAgent] Received action: {'throttle': 1.0, 'brake': 0.0, 'steer': 0.0}
+=== [Agent] -- Wallclock = 2025-09-04 23:51:40.713 -- System time = 14.094 -- Game time = 2.050 -- Ratio = 0.145x
+INFO:     127.0.0.1:52328 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:41.056 -- System time = 14.436 -- Game time = 2.100 -- Ratio = 0.145x
+INFO:     127.0.0.1:52344 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:41.403 -- System time = 14.783 -- Game time = 2.150 -- Ratio = 0.145x
+INFO:     127.0.0.1:52348 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:41.778 -- System time = 15.159 -- Game time = 2.200 -- Ratio = 0.145x
+INFO:     127.0.0.1:52360 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:42.174 -- System time = 15.555 -- Game time = 2.250 -- Ratio = 0.145x
+INFO:     127.0.0.1:52364 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:42.551 -- System time = 15.931 -- Game time = 2.300 -- Ratio = 0.144x
+INFO:     127.0.0.1:52376 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:42.908 -- System time = 16.288 -- Game time = 2.350 -- Ratio = 0.144x
+INFO:     127.0.0.1:52392 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:43.326 -- System time = 16.706 -- Game time = 2.400 -- Ratio = 0.144x
+INFO:     127.0.0.1:52406 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:43.684 -- System time = 17.065 -- Game time = 2.450 -- Ratio = 0.144x
+INFO:     127.0.0.1:52414 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:44.071 -- System time = 17.452 -- Game time = 2.500 -- Ratio = 0.143x
+[APIAgent] Step 50: throttle=1.00, steer=0.00, brake=0.00
+INFO:     127.0.0.1:52416 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:44.442 -- System time = 17.823 -- Game time = 2.550 -- Ratio = 0.143x
+[APIAgent] Step 50: Got sensor data for ['IMU', 'GPS', 'SPEED', 'Center', 'Left', 'Right']
+INFO:     127.0.0.1:52428 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:44.809 -- System time = 18.190 -- Game time = 2.600 -- Ratio = 0.143x
+INFO:     127.0.0.1:52442 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:45.168 -- System time = 18.549 -- Game time = 2.650 -- Ratio = 0.143x
+INFO:     127.0.0.1:52456 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:45.552 -- System time = 18.933 -- Game time = 2.700 -- Ratio = 0.143x
+INFO:     127.0.0.1:52462 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:46.006 -- System time = 19.387 -- Game time = 2.750 -- Ratio = 0.142x
+INFO:     127.0.0.1:52464 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:46.378 -- System time = 19.759 -- Game time = 2.800 -- Ratio = 0.142x
+INFO:     127.0.0.1:52472 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:46.736 -- System time = 20.116 -- Game time = 2.850 -- Ratio = 0.142x
+INFO:     127.0.0.1:39294 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:47.129 -- System time = 20.510 -- Game time = 2.900 -- Ratio = 0.141x
+INFO:     127.0.0.1:39306 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:47.498 -- System time = 20.879 -- Game time = 2.950 -- Ratio = 0.141x
+INFO:     127.0.0.1:39316 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:47.892 -- System time = 21.273 -- Game time = 3.000 -- Ratio = 0.141x
+INFO:     127.0.0.1:39330 - "POST /step HTTP/1.1" 200 OK
+[APIAgent] Received action: {'throttle': 1.0, 'brake': 0.0, 'steer': 0.0}
+=== [Agent] -- Wallclock = 2025-09-04 23:51:48.278 -- System time = 21.659 -- Game time = 3.050 -- Ratio = 0.141x
+INFO:     127.0.0.1:39338 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:48.661 -- System time = 22.041 -- Game time = 3.100 -- Ratio = 0.141x
+INFO:     127.0.0.1:39346 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:49.061 -- System time = 22.442 -- Game time = 3.150 -- Ratio = 0.140x
+INFO:     127.0.0.1:39362 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:49.437 -- System time = 22.817 -- Game time = 3.200 -- Ratio = 0.140x
+INFO:     127.0.0.1:39370 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:49.803 -- System time = 23.184 -- Game time = 3.250 -- Ratio = 0.140x
+INFO:     127.0.0.1:39374 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:50.192 -- System time = 23.573 -- Game time = 3.300 -- Ratio = 0.140x
+INFO:     127.0.0.1:39376 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:50.599 -- System time = 23.980 -- Game time = 3.350 -- Ratio = 0.140x
+INFO:     127.0.0.1:39382 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:51.012 -- System time = 24.393 -- Game time = 3.400 -- Ratio = 0.139x
+INFO:     127.0.0.1:39384 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:51.413 -- System time = 24.794 -- Game time = 3.450 -- Ratio = 0.139x
+INFO:     127.0.0.1:39394 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:51.813 -- System time = 25.194 -- Game time = 3.500 -- Ratio = 0.139x
+INFO:     127.0.0.1:39398 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:52.227 -- System time = 25.608 -- Game time = 3.550 -- Ratio = 0.139x
+INFO:     127.0.0.1:39406 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:52.642 -- System time = 26.023 -- Game time = 3.600 -- Ratio = 0.138x
+INFO:     127.0.0.1:39416 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:53.172 -- System time = 26.552 -- Game time = 3.650 -- Ratio = 0.137x
+INFO:     127.0.0.1:39420 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:53.623 -- System time = 27.004 -- Game time = 3.700 -- Ratio = 0.137x
+INFO:     127.0.0.1:39432 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:54.080 -- System time = 27.460 -- Game time = 3.750 -- Ratio = 0.137x
+INFO:     127.0.0.1:39448 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:54.489 -- System time = 27.870 -- Game time = 3.800 -- Ratio = 0.136x
+INFO:     127.0.0.1:39450 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:54.893 -- System time = 28.274 -- Game time = 3.850 -- Ratio = 0.136x
+INFO:     127.0.0.1:39456 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:55.295 -- System time = 28.676 -- Game time = 3.900 -- Ratio = 0.136x
+INFO:     127.0.0.1:39462 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:55.715 -- System time = 29.096 -- Game time = 3.950 -- Ratio = 0.136x
+INFO:     127.0.0.1:39476 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:56.128 -- System time = 29.509 -- Game time = 4.000 -- Ratio = 0.136x
+INFO:     127.0.0.1:39492 - "POST /step HTTP/1.1" 200 OK
+[APIAgent] Received action: {'throttle': 1.0, 'brake': 0.0, 'steer': 0.0}
+=== [Agent] -- Wallclock = 2025-09-04 23:51:56.529 -- System time = 29.909 -- Game time = 4.050 -- Ratio = 0.135x
+INFO:     127.0.0.1:39496 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:56.942 -- System time = 30.323 -- Game time = 4.100 -- Ratio = 0.135x
+INFO:     127.0.0.1:50662 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:57.366 -- System time = 30.747 -- Game time = 4.150 -- Ratio = 0.135x
+INFO:     127.0.0.1:50670 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:57.793 -- System time = 31.174 -- Game time = 4.200 -- Ratio = 0.135x
+INFO:     127.0.0.1:50676 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:58.205 -- System time = 31.586 -- Game time = 4.250 -- Ratio = 0.135x
+INFO:     127.0.0.1:50680 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:58.612 -- System time = 31.993 -- Game time = 4.300 -- Ratio = 0.134x
+INFO:     127.0.0.1:50684 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:59.025 -- System time = 32.406 -- Game time = 4.350 -- Ratio = 0.134x
+INFO:     127.0.0.1:50696 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:59.428 -- System time = 32.809 -- Game time = 4.400 -- Ratio = 0.134x
+INFO:     127.0.0.1:50706 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:51:59.890 -- System time = 33.271 -- Game time = 4.450 -- Ratio = 0.134x
+INFO:     127.0.0.1:50718 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:52:00.379 -- System time = 33.760 -- Game time = 4.500 -- Ratio = 0.133x
+INFO:     127.0.0.1:50726 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:52:00.812 -- System time = 34.193 -- Game time = 4.550 -- Ratio = 0.133x
+INFO:     127.0.0.1:50730 - "POST /step HTTP/1.1" 200 OK
+2025-09-04 23:52:01 [INFO] carla_server - save_snapshot:1720 - Snapshot saved to /mnt3/Documents/AD_Framework/bench2drive-gymnasium/bench2drive_microservices/snapshots/snap_service-0_0.json: snap_service-0_0 with 15 vehicles
+INFO:     127.0.0.1:50746 - "POST /snapshot HTTP/1.1" 200 OK
+2025-09-04 23:52:01 [INFO] carla_server - restore_snapshot:1839 - Loaded snapshot from filesystem: /mnt3/Documents/AD_Framework/bench2drive-gymnasium/bench2drive_microservices/snapshots/snap_service-0_0.json
+2025-09-04 23:52:01 [INFO] carla_server - restore_snapshot:1851 - === RESTORE START: snap_service-0_0 ===
+2025-09-04 23:52:01 [INFO] carla_server - restore_snapshot:1897 - Manager stopped
+2025-09-04 23:52:02 [INFO] carla_server - restore_snapshot:1939 - Applied transforms for 15 vehicles
+2025-09-04 23:52:02 [INFO] carla_server - restore_snapshot:1970 - Ego velocity restore: vx=20.08, vy=-0.14, vz=-0.04, yaw=179.6
+2025-09-04 23:52:02 [INFO] carla_server - restore_snapshot:1999 - Applied velocities and controls
+2025-09-04 23:52:02 [INFO] carla_server - restore_snapshot:2004 - Reinitialized criteria
+2025-09-04 23:52:02 [INFO] carla_server - restore_snapshot:2014 - Restarted manager builder thread
+2025-09-04 23:52:02 [INFO] carla_server - restore_snapshot:2019 - Restored step count: 90
+2025-09-04 23:52:02 [INFO] carla_server - restore_snapshot:2025 - === RESTORE SUCCESS: snap_service-0_0 ===
+INFO:     127.0.0.1:50760 - "POST /restore HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50774 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50784 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44868 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59528 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42292 - "GET /health HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:22.133 -- System time = 115.514 -- Game time = 4.800 -- Ratio = 0.042x
+INFO:     127.0.0.1:56752 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:22.714 -- System time = 116.095 -- Game time = 4.850 -- Ratio = 0.042x
+INFO:     127.0.0.1:56756 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:23.316 -- System time = 116.697 -- Game time = 4.900 -- Ratio = 0.042x
+INFO:     127.0.0.1:56764 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:23.930 -- System time = 117.311 -- Game time = 4.950 -- Ratio = 0.042x
+INFO:     127.0.0.1:56780 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:24.534 -- System time = 117.915 -- Game time = 5.000 -- Ratio = 0.042x
+INFO:     127.0.0.1:56794 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:25.149 -- System time = 118.530 -- Game time = 5.050 -- Ratio = 0.043x
+INFO:     127.0.0.1:56808 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:25.780 -- System time = 119.160 -- Game time = 5.100 -- Ratio = 0.043x
+INFO:     127.0.0.1:56816 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:26.410 -- System time = 119.790 -- Game time = 5.150 -- Ratio = 0.043x
+INFO:     127.0.0.1:56832 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:26.992 -- System time = 120.373 -- Game time = 5.200 -- Ratio = 0.043x
+[APIAgent] Step 100: throttle=1.00, steer=0.00, brake=0.00
+INFO:     127.0.0.1:54244 - "POST /step HTTP/1.1" 200 OK
+[APIAgent] Received action: {'throttle': 1.0, 'brake': 0.0, 'steer': 0.0}
+=== [Agent] -- Wallclock = 2025-09-04 23:53:27.662 -- System time = 121.042 -- Game time = 5.250 -- Ratio = 0.043x
+[APIAgent] Step 100: Got sensor data for ['GPS', 'IMU', 'SPEED', 'Center', 'Left', 'Right']
+INFO:     127.0.0.1:54250 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:28.230 -- System time = 121.611 -- Game time = 5.300 -- Ratio = 0.044x
+INFO:     127.0.0.1:54254 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:28.829 -- System time = 122.210 -- Game time = 5.350 -- Ratio = 0.044x
+INFO:     127.0.0.1:54258 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:29.386 -- System time = 122.766 -- Game time = 5.400 -- Ratio = 0.044x
+INFO:     127.0.0.1:54262 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:29.928 -- System time = 123.308 -- Game time = 5.450 -- Ratio = 0.044x
+INFO:     127.0.0.1:54268 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:30.539 -- System time = 123.919 -- Game time = 5.500 -- Ratio = 0.044x
+INFO:     127.0.0.1:54278 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:31.087 -- System time = 124.468 -- Game time = 5.550 -- Ratio = 0.045x
+INFO:     127.0.0.1:54292 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:31.699 -- System time = 125.079 -- Game time = 5.600 -- Ratio = 0.045x
+INFO:     127.0.0.1:54294 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:32.392 -- System time = 125.773 -- Game time = 5.650 -- Ratio = 0.045x
+INFO:     127.0.0.1:54306 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:32.968 -- System time = 126.349 -- Game time = 5.700 -- Ratio = 0.045x
+INFO:     127.0.0.1:54312 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:33.554 -- System time = 126.935 -- Game time = 5.750 -- Ratio = 0.045x
+INFO:     127.0.0.1:54324 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:34.111 -- System time = 127.491 -- Game time = 5.800 -- Ratio = 0.045x
+INFO:     127.0.0.1:54334 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:34.698 -- System time = 128.079 -- Game time = 5.850 -- Ratio = 0.046x
+INFO:     127.0.0.1:54350 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:35.304 -- System time = 128.685 -- Game time = 5.900 -- Ratio = 0.046x
+INFO:     127.0.0.1:54352 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:35.876 -- System time = 129.257 -- Game time = 5.950 -- Ratio = 0.046x
+INFO:     127.0.0.1:54354 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:36.443 -- System time = 129.823 -- Game time = 6.000 -- Ratio = 0.046x
+INFO:     127.0.0.1:54358 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:37.023 -- System time = 130.404 -- Game time = 6.050 -- Ratio = 0.046x
+INFO:     127.0.0.1:37974 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:37.574 -- System time = 130.954 -- Game time = 6.100 -- Ratio = 0.047x
+INFO:     127.0.0.1:37976 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:38.192 -- System time = 131.572 -- Game time = 6.150 -- Ratio = 0.047x
+INFO:     127.0.0.1:37984 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:38.774 -- System time = 132.155 -- Game time = 6.200 -- Ratio = 0.047x
+INFO:     127.0.0.1:38000 - "POST /step HTTP/1.1" 200 OK
+[APIAgent] Received action: {'throttle': 1.0, 'brake': 0.0, 'steer': 0.0}
+=== [Agent] -- Wallclock = 2025-09-04 23:53:39.331 -- System time = 132.712 -- Game time = 6.250 -- Ratio = 0.047x
+INFO:     127.0.0.1:38016 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:39.890 -- System time = 133.270 -- Game time = 6.300 -- Ratio = 0.047x
+INFO:     127.0.0.1:38022 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:40.455 -- System time = 133.835 -- Game time = 6.350 -- Ratio = 0.047x
+INFO:     127.0.0.1:38028 - "POST /step HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38038 - "GET /health HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:41.039 -- System time = 134.420 -- Game time = 6.400 -- Ratio = 0.048x
+INFO:     127.0.0.1:38048 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:41.610 -- System time = 134.991 -- Game time = 6.450 -- Ratio = 0.048x
+INFO:     127.0.0.1:38052 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:42.210 -- System time = 135.591 -- Game time = 6.500 -- Ratio = 0.048x
+INFO:     127.0.0.1:38058 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:42.826 -- System time = 136.207 -- Game time = 6.550 -- Ratio = 0.048x
+INFO:     127.0.0.1:38072 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:43.389 -- System time = 136.770 -- Game time = 6.600 -- Ratio = 0.048x
+INFO:     127.0.0.1:38088 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:43.963 -- System time = 137.344 -- Game time = 6.650 -- Ratio = 0.048x
+INFO:     127.0.0.1:38092 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:44.564 -- System time = 137.945 -- Game time = 6.700 -- Ratio = 0.049x
+INFO:     127.0.0.1:38104 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:45.174 -- System time = 138.555 -- Game time = 6.750 -- Ratio = 0.049x
+INFO:     127.0.0.1:38112 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:45.736 -- System time = 139.116 -- Game time = 6.800 -- Ratio = 0.049x
+INFO:     127.0.0.1:38118 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:46.329 -- System time = 139.710 -- Game time = 6.850 -- Ratio = 0.049x
+INFO:     127.0.0.1:38128 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:46.877 -- System time = 140.257 -- Game time = 6.900 -- Ratio = 0.049x
+INFO:     127.0.0.1:39568 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:47.441 -- System time = 140.822 -- Game time = 6.950 -- Ratio = 0.049x
+INFO:     127.0.0.1:39582 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:48.012 -- System time = 141.392 -- Game time = 7.000 -- Ratio = 0.050x
+INFO:     127.0.0.1:39598 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:48.623 -- System time = 142.004 -- Game time = 7.050 -- Ratio = 0.050x
+INFO:     127.0.0.1:39602 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:49.211 -- System time = 142.591 -- Game time = 7.100 -- Ratio = 0.050x
+INFO:     127.0.0.1:39614 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:49.789 -- System time = 143.170 -- Game time = 7.150 -- Ratio = 0.050x
+INFO:     127.0.0.1:39624 - "POST /step HTTP/1.1" 200 OK
+=== [Agent] -- Wallclock = 2025-09-04 23:53:50.390 -- System time = 143.771 -- Game time = 7.200 -- Ratio = 0.050x
+INFO:     127.0.0.1:39626 - "POST /step HTTP/1.1" 200 OK
+[APIAgent] Received action: {'throttle': 1.0, 'brake': 0.0, 'steer': 0.0}
+=== [Agent] -- Wallclock = 2025-09-04 23:53:50.959 -- System time = 144.340 -- Game time = 7.250 -- Ratio = 0.050x
+INFO:     127.0.0.1:39634 - "POST /step HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42114 - "GET /health HTTP/1.1" 200 OK
+2025-09-04 23:54:10 [INFO] carla_server - my_stop_scenario:732 - Stopping the route
+2025-09-04 23:54:10 [INFO] root - stop:92 - WDT: Stopped
+
+[1m========= Results of RouteScenario_1790 (repetition 0) ------ [91mFAILURE[0m [1m=========[0m
+
+╒═══════════════════════╤═════════════════════╕
+│ Start Time            │ 2025-09-04 23:51:26 │
+├───────────────────────┼─────────────────────┤
+│ End Time              │ 2025-09-04 23:54:10 │
+├───────────────────────┼─────────────────────┤
+│ System Time           │ 164.17s             │
+├───────────────────────┼─────────────────────┤
+│ Game Time             │ 7.25s               │
+├───────────────────────┼─────────────────────┤
+│ Ratio (Game / System) │ 0.044               │
+╘═══════════════════════╧═════════════════════╛
+
+╒═══════════════════════╤═════════╤══════════╕
+│ Criterion             │ Result  │ Value    │
+├───────────────────────┼─────────┼──────────┤
+│ RouteCompletionTest   │ [91mFAILURE[0m │ 79.01 %  │
+├───────────────────────┼─────────┼──────────┤
+│ OutsideRouteLanesTest │ [92mSUCCESS[0m │ 0 %      │
+├───────────────────────┼─────────┼──────────┤
+│ CollisionTest         │ [92mSUCCESS[0m │ 0 times  │
+├───────────────────────┼─────────┼──────────┤
+│ RunningRedLightTest   │ [92mSUCCESS[0m │ 0 times  │
+├───────────────────────┼─────────┼──────────┤
+│ RunningStopTest       │ [92mSUCCESS[0m │ 0 times  │
+├───────────────────────┼─────────┼──────────┤
+│ MinSpeedTest          │ [91mFAILURE[0m │ 225.87 % │
+├───────────────────────┼─────────┼──────────┤
+│ InRouteTest           │ [92mSUCCESS[0m │          │
+├───────────────────────┼─────────┼──────────┤
+│ AgentBlockedTest      │ [92mSUCCESS[0m │          │
+├───────────────────────┼─────────┼──────────┤
+│ ScenarioTimeoutTest   │ [92mSUCCESS[0m │ 0 times  │
+├───────────────────────┼─────────┼──────────┤
+│ Timeout               │ [92mSUCCESS[0m │          │
+╘═══════════════════════╧═════════╧══════════╛
+
+2025-09-04 23:54:11 [WARNING] carla_server - _register_statistics:703 - Route index 2 not in records, skipping statistics computation
+INFO:     127.0.0.1:42128 - "POST /close HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42136 - "GET /health HTTP/1.1" 200 OK
+Killed

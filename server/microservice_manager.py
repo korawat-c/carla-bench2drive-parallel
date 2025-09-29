@@ -146,7 +146,7 @@ class ServiceConfig:
     gpu_id: int
     auto_restart: bool = True
     max_restarts: int = 3
-    health_check_interval: int = 30
+    health_check_interval: int = 300  # 5 minutes - increased for long world loading times
 
 
 class Bench2DriveService:

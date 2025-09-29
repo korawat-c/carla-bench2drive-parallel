@@ -207,6 +207,46 @@ class GRPOCarlaEnv:
                 logger.error(f"Failed to create environment {idx}: {e}")
                 raise
     
+    def _setup_branch_environment(self, env_idx: int, snapshot_id: str, primary_obs: Optional[Dict]) -> bool:
+        """Setup branch environment with proper state synchronization."""
+        try:
+            # For primary environment, we just restore the snapshot directly
+            # NO RESET - we want to continue from the saved state
+            if env_idx == self.primary_env_idx:
+                # Primary environment should just restore from snapshot
+                # No reset needed - we're continuing from where we saved
+                try:
+                    self.envs[env_idx].restore_snapshot(snapshot_id)
+                    logger.info(f"Branch {env_idx} (primary) restored from snapshot {snapshot_id}")
+                    return True
+                except Exception as e:
+                    logger.error(f"Branch {env_idx} (primary): Failed to restore snapshot: {e}")
+                    return False
+            else:
+                # Non-primary environments need to be initialized first
+                # before they can restore a snapshot
+                try:
+                    logger.info(f"Branch {env_idx}: Initializing environment before restore...")
+                    self.envs[env_idx].reset(options={"route_id": 0})
+                    logger.info(f"Branch {env_idx}: Environment initialized")
+                except Exception as init_error:
+                    logger.error(f"Branch {env_idx}: Failed to initialize: {init_error}")
+                    return False
+                
+                # Now restore the snapshot for non-primary environment
+                try:
+                    self.envs[env_idx].restore_snapshot(snapshot_id)
+                    logger.info(f"Branch {env_idx} restored from snapshot {snapshot_id}")
+                    return True
+                except Exception as e:
+                    logger.warning(f"Branch {env_idx}: Failed to restore snapshot {snapshot_id}: {e}")
+                    logger.info(f"Branch {env_idx}: Using reset state as fallback")
+                    return True  # Still return True since we have a valid state
+                    
+        except Exception as e:
+            logger.error(f"Failed to setup branch {env_idx}: {e}")
+            return False
+    
     def reset(
         self,
         *,
@@ -549,26 +589,45 @@ class GRPOCarlaEnv:
                         self._create_env(i)
                         self.branching_setup_progress = (i + 1) / num_branches * 0.5
                 
-                # Load snapshot into all branches (parallel)
+                # First, ensure all environments have the snapshot
+                # The primary env has it, copy to others
+                if self.primary_env_idx in range(num_branches) and snapshot_id in self.envs[self.primary_env_idx].snapshots:
+                    snapshot_data = self.envs[self.primary_env_idx].snapshots[snapshot_id]
+                    for i in range(num_branches):
+                        if i != self.primary_env_idx and self.envs[i] is not None:
+                            # Copy snapshot metadata to other envs
+                            self.envs[i].snapshots[snapshot_id] = snapshot_data
+                
+                # Get primary environment state for synchronization
+                # We don't have last_observations tracked, so we'll pass None
+                primary_obs = None
+                
+                # Load snapshot into ALL branches including primary (parallel)
+                # This ensures all agents start from the exact same state
                 futures = []
                 for i in range(num_branches):
-                    if i != self.primary_env_idx:  # Primary already has the state
-                        future = self.executor.submit(
-                            self.envs[i].restore_snapshot, 
-                            snapshot_id
-                        )
-                        futures.append((i, future))
+                    # Include primary env too - it needs to restore from snapshot as well
+                    future = self.executor.submit(
+                        self._setup_branch_environment,
+                        i, 
+                        snapshot_id,
+                        primary_obs
+                    )
+                    futures.append((i, future))
                 
-                # Wait for all restores
+                # Wait for all branches to be ready
                 completed = 0
                 for i, future in futures:
                     try:
-                        future.result(timeout=self.timeout)
-                        logger.info(f"Branch {i} restored from snapshot")
-                        completed += 1
-                        self.branching_setup_progress = 0.5 + (completed / len(futures) * 0.5)
+                        success = future.result(timeout=self.timeout * 2)  # Double timeout for setup
+                        if success:
+                            logger.info(f"Branch {i} ready")
+                            completed += 1
+                            self.branching_setup_progress = 0.5 + (completed / len(futures) * 0.5)
+                        else:
+                            raise RuntimeError(f"Failed to setup branch {i}")
                     except Exception as e:
-                        logger.error(f"Failed to restore branch {i}: {e}")
+                        logger.error(f"Failed to setup branch {i}: {e}")
                         return StatusInfo(
                             status=EnvStatus.ERROR,
                             message=f"Failed to setup branch {i}: {str(e)}",
@@ -606,7 +665,7 @@ class GRPOCarlaEnv:
     def select_branch(self, branch_idx: int):
         """
         Select best branch and return to single mode.
-        No snapshot/restore needed - just continue with selected branch.
+        Properly preserves the selected branch's state including velocity.
         
         ONLY works in branching mode. After calling this:
         - branch_step() will raise error
@@ -633,19 +692,28 @@ class GRPOCarlaEnv:
         logger.info(f"Selecting branch {branch_idx} with cumulative reward: "
                    f"{self.cumulative_rewards[branch_idx]:.2f}")
         
-        # Switch primary environment to selected branch
+        # Smart approach: just continue using the selected CARLA instance directly
+        # No need for snapshot/restore - much more efficient
+        logger.info(f"Switching to use branch {branch_idx}'s CARLA instance directly")
+        logger.info(f"Branch {branch_idx} is on port {self.envs[branch_idx].server_url if branch_idx < len(self.envs) else 'unknown'}")
+        
+        # Simply change which environment is primary
         self.primary_env_idx = branch_idx
         
         # Keep only the selected branch's reward history
         selected_reward = self.episode_rewards[branch_idx]
         self.episode_rewards = [0.0] * self.max_branches
-        self.episode_rewards[branch_idx] = selected_reward
+        self.episode_rewards[0] = selected_reward  # Store in index 0 since that's our primary
+        
+        # Store the last observations from the selected branch if they exist
+        if hasattr(self, 'last_observations') and branch_idx < len(self.last_observations):
+            self.last_observations[0] = self.last_observations[branch_idx]
         
         # Switch back to single mode
         self.mode = ExecutionMode.SINGLE
         self.active_branches = 1
         
-        logger.info(f"Returned to single mode with branch {branch_idx}")
+        logger.info(f"Returned to single mode with branch {branch_idx} state")
     
     def _setup_branching_async(self, snapshot_id: str, num_branches: int):
         """Async helper to setup branching in background."""

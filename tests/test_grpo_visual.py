@@ -4,12 +4,11 @@ Visual test for GRPO environment with image capture.
 
 Test workflow:
 1. Phase 1: Single mode exploration for 90 steps
-2. Save snapshot and enable branching (4 branches)
-3. Phase 2: Branching mode for 20 steps with 4 different agent behaviors:
-   - Agent 1: Straight (throttle=1.0, steer=0.0)
-   - Agent 2: Left turn (throttle=1.0, steer=-1.0)
-   - Agent 3: Right turn (throttle=1.0, steer=1.0)
-   - Agent 4: Random steering (throttle=1.0, steer=random[-1,1])
+2. Save snapshot and enable branching (2 branches)
+3. Phase 2: Branching mode for 50 steps with 2 different agent behaviors:
+   - Agent 0: Straight (throttle=1.0, steer=0.0)
+   - Agent 1: Left turn (throttle=0.8, steer=-0.3)
+4. Phase 3: Select Agent 1 and continue for 50 steps
 """
 
 import numpy as np
@@ -58,20 +57,18 @@ class GRPOVisualTester:
         # Create subdirectories for different phases
         self.phase_dirs = {
             "phase1_single": self.output_dir / "1_single_exploration_90steps",
-            "phase2_branch": self.output_dir / "2_branching_20steps",
-            "branch0_straight": self.output_dir / "2_branching_20steps" / "agent0_straight",
-            "branch1_left": self.output_dir / "2_branching_20steps" / "agent1_left",
-            "branch2_right": self.output_dir / "2_branching_20steps" / "agent2_right",
-            "branch3_random": self.output_dir / "2_branching_20steps" / "agent3_random",
-            "phase3_continue": self.output_dir / "3_continue_agent3_50steps"
+            "phase2_branch": self.output_dir / "2_branching_50steps",
+            "branch0_straight": self.output_dir / "2_branching_50steps" / "agent0_straight",
+            "branch1_left": self.output_dir / "2_branching_50steps" / "agent1_left",
+            "phase3_continue": self.output_dir / "3_continue_agent1_50steps"
         }
         
         for phase_dir in self.phase_dirs.values():
             phase_dir.mkdir(parents=True, exist_ok=True)
         
-        # Create GRPO environment with 4 branches max
+        # Create GRPO environment with 2 branches max
         self.env = GRPOCarlaEnv(
-            num_services=4,
+            num_services=2,
             base_api_port=base_port,
             render_mode="rgb_array",
             max_steps=200,
@@ -231,7 +228,7 @@ class GRPOVisualTester:
         # Run 90 steps with forward action
         for step in range(1, 91):
             # Simple forward action
-            action = np.array([1.0, 0.0, 0.0])  # [throttle, brake, steer]
+            action = np.array([1.0, 0.0, 0.0], dtype=np.float32) # [throttle, brake, steer]
             
             # Single step (not branch_step since we're in single mode)
             try:
@@ -248,12 +245,11 @@ class GRPOVisualTester:
                 if position:
                     self.position_history["phase1"].append(position)
                 
-                # Save image every 10 steps
-                if step % 10 == 0:
-                    self.extract_and_save_image(obs, step, "Phase 1 - Single", action=action)
-                    if position:
-                        logger.info(f"Step {step}: X={position['x']:.1f}, Y={position['y']:.1f}, "
-                                  f"reward={reward:.2f}")
+                # Save image EVERY step as requested
+                self.extract_and_save_image(obs, step, "Phase 1 - Single", action=action)
+                if step % 10 == 0 and position:
+                    logger.info(f"Step {step}: X={position['x']:.1f}, Y={position['y']:.1f}, "
+                              f"reward={reward:.2f}")
                 
                 if terminated or truncated:
                     logger.info(f"Episode ended at step {step}")
@@ -261,18 +257,17 @@ class GRPOVisualTester:
                     
             except Exception as e:
                 logger.error(f"Error at step {step}: {e}")
+                # Still save image even on error
+                self.extract_and_save_image(obs, step, f"Phase 1 - Error at step {step}", action=action)
                 break
-        
-        # Save final image
-        self.extract_and_save_image(obs, 90, "Phase 1 - Final", action=action)
         logger.info(f"Phase 1 complete: {len(self.position_history['phase1'])} positions recorded")
         
         return obs  # Return last observation for continuity
     
     def run_phase2_branching(self, last_obs: Dict):
-        """Phase 2: Branching mode with 4 agents for 20 steps."""
+        """Phase 2: Branching mode with 2 agents for 50 steps."""
         logger.info("\n" + "="*60)
-        logger.info("PHASE 2: Branching Mode (4 agents, 20 steps)")
+        logger.info("PHASE 2: Branching Mode (2 agents, 50 steps)")
         logger.info("="*60)
         
         # Save snapshot before branching
@@ -280,9 +275,9 @@ class GRPOVisualTester:
         snapshot_id = self.env.save_snapshot()
         logger.info(f"Snapshot saved: {snapshot_id}")
         
-        # Enable branching with 4 branches
-        logger.info("Enabling branching mode with 4 agents...")
-        status = self.env.enable_branching(snapshot_id, num_branches=4, async_setup=False)
+        # Enable branching with 2 branches
+        logger.info("Enabling branching mode with 2 agents...")
+        status = self.env.enable_branching(snapshot_id, num_branches=2, async_setup=False)
         
         if status.status != EnvStatus.BRANCHING_READY:
             logger.error(f"Failed to enable branching: {status.message}")
@@ -291,35 +286,25 @@ class GRPOVisualTester:
         logger.info(f"Branching enabled. Mode: {self.env.current_mode}, is_branching: {self.env.is_branching}")
         logger.info("Agent behaviors:")
         logger.info("  Agent 0: Straight (throttle=1.0, steer=0.0)")
-        logger.info("  Agent 1: Left turn (throttle=1.0, steer=-1.0)")
-        logger.info("  Agent 2: Right turn (throttle=1.0, steer=1.0)")
-        logger.info("  Agent 3: Random steering (throttle=1.0, steer=random[-1,1])")
+        logger.info("  Agent 1: Left turn (throttle=0.8, steer=-0.3)")
         
-        # Run 20 steps with different behaviors
-        for step in range(91, 111):  # Steps 91-110
+        # Run 50 steps with different behaviors
+        for step in range(91, 141):  # Steps 91-140
             # Generate actions for each agent
             actions = []
             
-            # Agent 0: Straight
-            actions.append(np.array([1.0, 0.0, 0.0]))
+            # Agent 0: Straight (throttle, brake, steer)
+            actions.append(np.array([1.0, 0.0, 0.0], dtype=np.float32))
             
-            # Agent 1: Left turn
-            actions.append(np.array([1.0, 0.0, -1.0]))
-            
-            # Agent 2: Right turn
-            actions.append(np.array([1.0, 0.0, 1.0]))
-            
-            # Agent 3: Random steering
-            random_steer = random.uniform(-1.0, 1.0)
-            self.random_steers.append(random_steer)
-            actions.append(np.array([1.0, 0.0, random_steer]))
+            # Agent 1: Left turn (throttle, brake, steer)
+            actions.append(np.array([1.0, 0.0, -1.0], dtype=np.float32))
             
             # Branch step (not single_step since we're in branching mode)
             try:
                 observations, rewards, terminateds, truncateds, infos = self.env.branch_step(actions)
                 
                 # Process each branch
-                for i in range(4):
+                for i in range(2):  # Only 2 agents
                     # Check status
                     if 'status' in infos[i]:
                         status = infos[i]['status']
@@ -331,28 +316,28 @@ class GRPOVisualTester:
                     if position:
                         self.position_history[f"branch{i}"].append(position)
                     
-                    # Save images every 5 steps
-                    if (step - 91) % 5 == 0 or step == 91 or step == 110:
-                        self.extract_and_save_image(
-                            observations[i], 
-                            step, 
-                            f"Phase 2 - Branch {i}",
-                            branch_id=i,
-                            action=actions[i]
-                        )
+                    # Save images EVERY step as requested
+                    self.extract_and_save_image(
+                        observations[i], 
+                        step, 
+                        f"Phase 2 - Branch {i}",
+                        branch_id=i,
+                        action=actions[i]
+                    )
                     
                     if terminateds[i] or truncateds[i]:
                         logger.info(f"Agent {i} terminated at step {step}")
                 
-                # Log progress every 5 steps
-                if (step - 91) % 5 == 0:
-                    logger.info(f"Step {step}:")
-                    for i in range(4):
-                        pos = self.extract_position(observations[i])
-                        if pos:
-                            agent_types = ["Straight", "Left", "Right", f"Random({self.random_steers[-1]:.2f})"]
-                            logger.info(f"  Agent {i} ({agent_types[i]}): "
-                                      f"X={pos['x']:.1f}, Y={pos['y']:.1f}, reward={rewards[i]:.2f}")
+                # Log progress every step
+                logger.info(f"Step {step}:")
+                for i in range(2):  # Only 2 agents
+                    pos = self.extract_position(observations[i])
+                    if pos:
+                        agent_types = ["Straight", "Gentle Left"]
+                        logger.info(f"  Agent {i} ({agent_types[i]}): "
+                                  f"X={pos['x']:.1f}, Y={pos['y']:.1f}, reward={rewards[i]:.2f}")
+                    # Log that image was saved  
+                    logger.info(f"  Saved image for Agent {i} at step {step}")
                 
             except Exception as e:
                 logger.error(f"Error at step {step}: {e}")
@@ -366,32 +351,30 @@ class GRPOVisualTester:
         self.last_branch_observations = observations
         return observations
     
-    def run_phase3_continue_agent3(self, branch_observations):
-        """Phase 3: Select Agent 3 (random) and continue for 50 steps."""
+    def run_phase3_continue_agent1(self, branch_observations):
+        """Phase 3: Select Agent 1 (left turn) and continue for 50 steps."""
         logger.info("\n" + "="*60)
-        logger.info("PHASE 3: Continue with Agent 3 (Random Steering, 50 steps)")
+        logger.info("PHASE 3: Continue with Agent 1 (Left Turn, 50 steps)")
         logger.info("="*60)
         
-        # Select Agent 3 (index 3) - the random steering agent
-        logger.info("Selecting Agent 3 (random steering) to continue...")
-        self.env.select_branch(3)
+        # Select Agent 1 (index 1) - the left turn agent
+        logger.info("Selecting Agent 1 (left turn) to continue...")
+        self.env.select_branch(1)
         
         logger.info(f"Returned to single mode. Mode: {self.env.current_mode}, is_branching: {self.env.is_branching}")
         
-        # Get the last position from Agent 3
-        if branch_observations and len(branch_observations) > 3:
-            last_pos = self.extract_position(branch_observations[3])
+        # Get the last position from Agent 1
+        if branch_observations and len(branch_observations) > 1:
+            last_pos = self.extract_position(branch_observations[1])
             if last_pos:
-                logger.info(f"Continuing from Agent 3 position: X={last_pos['x']:.1f}, Y={last_pos['y']:.1f}")
+                logger.info(f"Continuing from Agent 1 position: X={last_pos['x']:.1f}, Y={last_pos['y']:.1f}")
         
-        # Continue for 50 steps with random steering
-        logger.info("Continuing with random steering strategy for 50 steps...")
+        # Continue for 50 steps with forward movement
+        logger.info("Continuing with forward movement for 50 steps...")
         
-        for step in range(111, 161):  # Steps 111-160
-            # Generate random steering like Agent 3 did
-            random_steer = random.uniform(-1.0, 1.0)
-            self.random_steers.append(random_steer)
-            action = np.array([1.0, 0.0, random_steer])  # [throttle, brake, steer]
+        for step in range(141, 191):  # Steps 141-190
+            # Simple forward action to maintain speed
+            action = np.array([1.0, 0.0, 0.0], dtype=np.float32)  # [throttle, brake, steer]
             
             try:
                 # Use single_step since we're back in single mode
@@ -408,18 +391,19 @@ class GRPOVisualTester:
                 if position:
                     self.position_history["phase3"].append(position)
                 
-                # Save image every 10 steps
-                if (step - 111) % 10 == 0 or step == 111 or step == 160:
-                    self.extract_and_save_image(
-                        obs, 
-                        step, 
-                        f"Phase 3 - Continue Agent 3",
-                        action=action
-                    )
-                    
+                # Save image EVERY step as requested
+                self.extract_and_save_image(
+                    obs, 
+                    step, 
+                    f"Phase 3 - Continue Agent 1",
+                    action=action
+                )
+                
+                # Log progress every 10 steps
+                if step % 10 == 0 or step == 141:
                     if position:
                         logger.info(f"Step {step}: X={position['x']:.1f}, Y={position['y']:.1f}, "
-                                  f"steer={random_steer:.2f}, reward={reward:.2f}")
+                                  f"reward={reward:.2f}")
                 
                 if terminated or truncated:
                     logger.info(f"Episode ended at step {step}")
@@ -481,11 +465,11 @@ class GRPOVisualTester:
             # Phase 1: Single exploration (90 steps)
             last_obs = self.run_phase1_single_exploration()
             
-            # Phase 2: Branching with 4 agents (20 steps)
+            # Phase 2: Branching with 2 agents (50 steps)
             branch_observations = self.run_phase2_branching(last_obs)
             
-            # Phase 3: Continue with Agent 3 (50 steps)
-            self.run_phase3_continue_agent3(branch_observations)
+            # Phase 3: Continue with Agent 1 (50 steps)
+            self.run_phase3_continue_agent1(branch_observations)
             
             # Save all position data
             self.save_position_data()
@@ -494,8 +478,7 @@ class GRPOVisualTester:
             logger.info("TEST COMPLETE - ALL 3 PHASES")
             logger.info("="*60)
             logger.info(f"Images saved to: {self.output_dir}")
-            logger.info(f"Total steps: 160 (Phase1: 90, Phase2: 20, Phase3: 50)")
-            logger.info(f"Total random steers generated: {len(self.random_steers)}")
+            logger.info(f"Total steps: 190 (Phase1: 90, Phase2: 50, Phase3: 50)")
             
         except Exception as e:
             logger.error(f"Test failed: {e}")
@@ -506,7 +489,7 @@ class GRPOVisualTester:
             self.env.close()
 
 
-def start_servers(num_services: int = 4):
+def start_servers(num_services: int = 2):
     """Start CARLA servers if needed."""
     logger.info(f"Starting {num_services} CARLA services...")
     
@@ -563,7 +546,7 @@ def main():
     
     server_proc = None
     if args.start_servers:
-        server_proc = start_servers(4)
+        server_proc = start_servers(2)
     
     try:
         # Run test
