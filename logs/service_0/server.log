@@ -440,3 +440,8 @@ INFO:     127.0.0.1:60948 - "GET /health HTTP/1.1" 200 OK
 2025-09-30 14:27:39 [WARNING] carla_server - _register_statistics:699 - Route index 2 not in records, skipping statistics computation
 INFO:     127.0.0.1:60952 - "POST /close HTTP/1.1" 200 OK
 INFO:     127.0.0.1:56726 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42034 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37660 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49654 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34648 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34656 - "GET /health HTTP/1.1" 200 OK
