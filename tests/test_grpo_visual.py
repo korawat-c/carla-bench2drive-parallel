@@ -24,6 +24,7 @@ from io import BytesIO
 from typing import Dict, Optional
 import random
 import subprocess
+import requests
 import carla
 import threading
 from datetime import datetime
@@ -49,7 +50,7 @@ class GRPOVisualTester:
     def __init__(self, base_port: int = 8080, output_dir: str = "grpo_test_images"):
         """
         Initialize GRPO visual tester.
-        
+
         Args:
             base_port: Base API port for services
             output_dir: Directory to save images
@@ -57,7 +58,7 @@ class GRPOVisualTester:
         self.base_port = base_port
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create subdirectories for different phases
         self.phase_dirs = {
             "phase1_single": self.output_dir / "1_single_exploration_90steps",
@@ -66,18 +67,35 @@ class GRPOVisualTester:
             "branch1_left": self.output_dir / "2_branching_50steps" / "agent1_left",
             "phase3_continue": self.output_dir / "3_continue_agent1_50steps"
         }
-        
+
         for phase_dir in self.phase_dirs.values():
             phase_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Create GRPO environment with 2 branches max
-        self.env = GRPOCarlaEnv(
-            num_services=2,
-            base_api_port=base_port,
-            render_mode="rgb_array",
-            max_steps=200,
-            timeout=180.0
-        )
+
+        # Create GRPO environment with 2 branches max and better error handling
+        logger.info("Creating GRPOCarlaEnv with robust connection handling...")
+        self.env = None
+        max_retries = 3
+        retry_delay = 10
+
+        for attempt in range(max_retries):
+            try:
+                self.env = GRPOCarlaEnv(
+                    num_services=2,
+                    base_api_port=base_port,
+                    render_mode="rgb_array",
+                    max_steps=200,
+                    timeout=180.0
+                )
+                logger.info("GRPOCarlaEnv created successfully")
+                break
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed to create GRPOCarlaEnv: {e}")
+                if attempt < max_retries - 1:
+                    logger.info(f"Waiting {retry_delay}s before retry...")
+                    time.sleep(retry_delay)
+                else:
+                    logger.error("Failed to create GRPOCarlaEnv after all retries")
+                    raise
         
         # Position tracking
         self.position_history = {
@@ -749,11 +767,16 @@ class GRPOVisualTester:
         try:
             # Pre-initialize all services for fast branching
             logger.info("Pre-initializing all services for fast branching...")
-            init_status = self.env.initialize_all_services(route_id=0)
-            if init_status.ready:
-                logger.info("✓ All services pre-initialized successfully")
-            else:
-                logger.warning(f"⚠ Service pre-initialization issues: {init_status.message}")
+            try:
+                init_status = self.env.initialize_all_services(route_id=0)
+                if init_status.ready:
+                    logger.info("✓ All services pre-initialized successfully")
+                else:
+                    logger.warning(f"⚠ Service pre-initialization issues: {init_status.message}")
+                    logger.info("Continuing with test despite pre-initialization issues...")
+            except Exception as e:
+                logger.warning(f"Service pre-initialization failed: {e}")
+                logger.info("Continuing with test without pre-initialization...")
 
             # Phase 1: Single exploration (90 steps)
             last_obs = self.run_phase1_single_exploration()
@@ -855,11 +878,38 @@ def start_servers(num_services: int = 2):
         "--num-services", str(num_services),
         "--startup-delay", "0"
     ]
-    
+
     proc = subprocess.Popen(cmd)
     logger.info("Microservice manager started, waiting for servers...")
-    time.sleep(15)  # Wait for servers to start
-    
+
+    # Wait for servers to be ready with health checks
+    max_wait = 60  # Increased wait time
+    wait_interval = 5
+    total_wait = 0
+
+    while total_wait < max_wait:
+        all_ready = True
+        for i in range(num_services):
+            try:
+                response = requests.get(f"http://localhost:{8080 + i}/health", timeout=5)
+                if response.status_code != 200:
+                    all_ready = False
+                    break
+            except:
+                all_ready = False
+                break
+
+        if all_ready:
+            logger.info(f"All {num_services} servers are ready after {total_wait}s")
+            break
+
+        logger.info(f"Waiting for servers... ({total_wait}/{max_wait}s)")
+        time.sleep(wait_interval)
+        total_wait += wait_interval
+
+    if not all_ready:
+        logger.warning(f"Not all servers are ready after {max_wait}s, but continuing...")
+
     return proc
 
 
