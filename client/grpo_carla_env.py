@@ -22,7 +22,12 @@ import time
 from enum import Enum
 from dataclasses import dataclass
 
-from .carla_env import CarlaEnv
+try:
+    # when this file is part of a package (imported as pkg.module)
+    from .carla_env import CarlaEnv
+except ImportError:
+    # when this file is run as a script / no parent package
+    from carla_env import CarlaEnv
 
 logger = logging.getLogger(__name__)
 
@@ -270,9 +275,30 @@ class GRPOCarlaEnv:
         """Get current execution mode as string."""
         return self.mode.value
     
+    def _wait_for_service_ready(self, url: str, timeout: int = 30) -> bool:
+        """Wait for a CARLA service to be ready and responding."""
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            try:
+                response = requests.get(f"{url}/health", timeout=5)
+                if response.status_code == 200:
+                    return True
+            except requests.exceptions.RequestException:
+                pass
+
+            time.sleep(1)
+
+        logger.error(f"Service at {url} not ready after {timeout} seconds")
+        return False
+
     def _create_env(self, idx: int):
         """Create environment instance at given index."""
         if self.envs[idx] is None:
+            # Wait for service to be ready
+            if not self._wait_for_service_ready(self.service_urls[idx]):
+                raise RuntimeError(f"Service {self.service_urls[idx]} not ready")
+
             try:
                 self.envs[idx] = CarlaEnv(
                     server_url=self.service_urls[idx],

@@ -1021,6 +1021,7 @@ def calculate_reward(evaluator, action: Dict[str, float], info: Dict[str, Any]) 
     except Exception as e:
         logger.error(f"Error calculating reward: {e}")
     
+    reward = 0
     return reward
 
 def check_termination_conditions(evaluator) -> Tuple[bool, bool, Dict[str, Any]]:

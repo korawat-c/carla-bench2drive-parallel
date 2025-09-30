@@ -111,7 +111,9 @@ class CarlaEnv(gym.Env):
     def _verify_server(self):
         """Verify connection to CARLA server."""
         try:
-            response = requests.get(f"{self.server_url}/health", timeout=5)
+            # Use the same timeout as the environment initialization
+            timeout = min(self.timeout, 30)  # Cap at 30 seconds for health check
+            response = requests.get(f"{self.server_url}/health", timeout=timeout)
             response.raise_for_status()
             logger.info(f"Connected to CARLA server at {self.server_url}")
         except Exception as e:
